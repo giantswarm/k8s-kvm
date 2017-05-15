@@ -34,7 +34,7 @@ echo "Found network bridge IP '${NETWORK_BRIDGE_IP}' for network bridge name '${
 # Enable the VM's network bridge.
 #
 
-echo "allow ${NETWORK_BRIDGE_NAME}" > /etc/qemu/bridge.conf
+echo "allow ${NETWORK_BRIDGE_NAME}" >/etc/qemu/bridge.conf
 
 #
 # Prepare FS.
@@ -75,7 +75,7 @@ fi
 TASKSET=
 
 if [ ! -z ${PIN_CPU+x} ] && [ ! -z "$PIN_CPU" ]; then
-    TASKSET="taskset -ac $PIN_CPU"
+  TASKSET="taskset -ac $PIN_CPU"
 fi
 
 #
