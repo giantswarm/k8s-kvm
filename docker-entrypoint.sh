@@ -80,6 +80,9 @@ fi
 # Boot the VM.
 #
 
+cat /usr/code/cloudconfig/openstack/latest/user_data | base64 -d | gunzip > /usr/code/cloudconfig/openstack/latest/raw_user_data
+mv /usr/code/cloudconfig/openstack/latest/raw_user_data /usr/code/cloudconfig/openstack/latest/user_data
+
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -name ${HOSTNAME} \
   -nographic \
