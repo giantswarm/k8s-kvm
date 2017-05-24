@@ -94,9 +94,6 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -fsdev \
   local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
   -device virtio-9p-pci,fsdev=conf,mount_tag=config-2 \
-  -fsdev \
-  local,security_model=none,id=fsdev0,path=/etc/kubernetes/ssl/,readonly \
-  -device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag=sslshare \
   $ETCD_DATA_VOLUME_PATH \
   $SECRETS_DATA_VOLUME_PATH \
   -drive \
