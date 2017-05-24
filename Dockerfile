@@ -5,3 +5,5 @@ RUN dnf -y update && \
     dnf clean all
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
