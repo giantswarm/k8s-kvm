@@ -62,11 +62,9 @@ mkfs.xfs $ROOTFS
 #
 
 ETCD_DATA_VOLUME_PATH=""
-SECRETS_DATA_VOLUME_PATH=""
 
 if [ "$ROLE" = "master" ]; then
   ETCD_DATA_VOLUME_PATH="-fsdev local,security_model=none,id=fsdev1,path=/etc/kubernetes/data/etcd/ -device virtio-9p-pci,id=fs1,fsdev=fsdev1,mount_tag=etcdshare"
-  SECRETS_DATA_VOLUME_PATH="-fsdev local,security_model=none,id=fsdev2,path=/etc/kubernetes/secrets/ -device virtio-9p-pci,id=fs2,fsdev=fsdev2,mount_tag=secretsshare"
 fi
 
 # Pin the vm on a certain CPU. Make sure the variable is set and a CPU value is
@@ -95,7 +93,6 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
   -device virtio-9p-pci,fsdev=conf,mount_tag=config-2 \
   $ETCD_DATA_VOLUME_PATH \
-  $SECRETS_DATA_VOLUME_PATH \
   -drive \
   if=virtio,file=$USRFS,format=raw,serial=usr.readonly \
   -drive \
