@@ -8,11 +8,17 @@
 #     ${NETWORK_BRIDGE_NAME}    e.g. "br-h8s2l"
 #     ${MEMORY}                 e.g. "2048"
 #     ${ROLE}                   e.g. "master" or "worker"
-#
-# Cloud config has to be written into "/usr/code/cloudconfig/openstack/latest/user_data".
-#
+#     ${CLOUD_CONFIG_PATH}      e.g. "/cloudconfig/user_data"
 
 set -eu
+
+raw_cloud_config_dir="/usr/code/cloudconfig/openstack/latest"
+raw_cloud_config_path="$raw_cloud_config_dir/user_data"
+
+if [ -z $CLOUD_CONFIG_PATH ] || [ "$CLOUD_CONFIG_PATH" == "$raw_cloud_config_path" ]; then
+    echo "CLOUD_CONFIG_PATH must be set, and must be different than '$raw_cloud_config_path'. Got '$CLOUD_CONFIG_PATH'." >&2
+    exit 1
+fi
 
 #
 # Find IP of network bridge.
@@ -80,8 +86,8 @@ fi
 # Boot the VM.
 #
 
-cat /usr/code/cloudconfig/openstack/latest/user_data | base64 -d | gunzip > /usr/code/cloudconfig/openstack/latest/raw_user_data
-mv /usr/code/cloudconfig/openstack/latest/raw_user_data /usr/code/cloudconfig/openstack/latest/user_data
+mkdir -p "$raw_cloud_config_dir"
+cat "$CLOUD_CONFIG_PATH" | base64 -d | gunzip > "$raw_cloud_config_path"
 
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -name ${HOSTNAME} \
