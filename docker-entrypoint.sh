@@ -16,7 +16,7 @@ raw_cloud_config_dir="/usr/code/cloudconfig/openstack/latest"
 raw_cloud_config_path="$raw_cloud_config_dir/user_data"
 
 if [ -z $CLOUD_CONFIG_PATH ] || [ "$CLOUD_CONFIG_PATH" == "$raw_cloud_config_path" ]; then
-    echo "CLOUD_CONFIG_PATH must be set, and must be different that '$raw_cloud_config_path'. Got '$CLOUD_CONFIG_PATH'." >&2
+    echo "CLOUD_CONFIG_PATH must be set, and must be different than '$raw_cloud_config_path'. Got '$CLOUD_CONFIG_PATH'." >&2
     exit 1
 fi
 
