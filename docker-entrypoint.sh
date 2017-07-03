@@ -12,11 +12,11 @@
 
 set -eu
 
-RAW_CLOUD_CONFIG_DIR="/usr/code/cloudconfig/openstack/latest"
-RAW_CLOUD_CONFIG_PATH="${RAW_CLOUD_CONFIG_DIR}/user_data"
+raw_cloud_config_dir="/usr/code/cloudconfig/openstack/latest"
+raw_cloud_config_path="${raw_cloud_config_dir}/user_data"
 
-if [ -z ${CLOUD_CONFIG_PATH} ] || [ "${CLOUD_CONFIG_PATH}" == "${RAW_CLOUD_CONFIG_PATH}" ]; then
-    echo "CLOUD_CONFIG_PATH must be set, and must be different than '${RAW_CLOUD_CONFIG_PATH}'. Got '${CLOUD_CONFIG_PATH}'." >&2
+if [ -z ${CLOUD_CONFIG_PATH} ] || [ "${CLOUD_CONFIG_PATH}" == "${raw_cloud_config_path}" ]; then
+    echo "CLOUD_CONFIG_PATH must be set, and must be different than '${raw_cloud_config_path}'. Got '${CLOUD_CONFIG_PATH}'." >&2
     exit 1
 fi
 
@@ -86,9 +86,9 @@ fi
 # Boot the VM.
 #
 
-mkdir -p "${RAW_CLOUD_CONFIG_DIR}"
-cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${RAW_CLOUD_CONFIG_PATH}"
-echo "hostname: '${HOSTNAME}'" >> "${RAW_CLOUD_CONFIG_PATH}"
+mkdir -p "${raw_cloud_config_dir}"
+cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_cloud_config_path}"
+echo "hostname: '${HOSTNAME}'" >> "${raw_cloud_config_path}"
 
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -name ${HOSTNAME} \
