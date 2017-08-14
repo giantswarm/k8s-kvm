@@ -9,6 +9,7 @@
 #     ${MEMORY}                 e.g. "2048"
 #     ${ROLE}                   e.g. "master" or "worker"
 #     ${CLOUD_CONFIG_PATH}      e.g. "/cloudconfig/user_data"
+#     ${COREOS_VERSION}         e.g. "1409.7.0"
 
 set -eu
 
@@ -47,13 +48,59 @@ echo "allow ${NETWORK_BRIDGE_NAME}" >/etc/qemu/bridge.conf
 #
 
 mkdir -p /usr/code/rootfs/
-mkdir -p /usr/code/images/
 mkdir -p /usr/code/cloudconfig/openstack/latest/
 
 ROOTFS="/usr/code/rootfs/rootfs.img"
-KERNEL="/usr/code/images/coreos_production_qemu.vmlinuz"
-USRFS="/usr/code/images/coreos_production_qemu_usr_image.squashfs"
 MAC_ADDRESS=$(printf 'DE:AD:BE:%02X:%02X:%02X\n' $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)))
+
+
+#
+# Prepare CoreOS images.
+#
+
+IMGDIR="/usr/code/images"
+KERNEL="${IMGDIR}/coreos_production_qemu.vmlinuz"
+USRFS="${IMGDIR}/coreos_production_qemu_usr_image.squashfs"
+
+mkdir -p ${IMGDIR}
+
+# Use specific CoreOS version, if ${COREOS_VERSION} is set and not empty.
+# Check if images already in place, if not download them.
+if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
+  KERNEL="${IMGDIR}/${COREOS_VERSION}/coreos_production_qemu.vmlinuz"
+  USRFS="${IMGDIR}/${COREOS_VERSION}/coreos_production_qemu_usr_image.squashfs"
+
+  # Download if does not exist.
+  if [ ! -f "${IMGDIR}/${COREOS_VERSION}/done.lock" ]; then
+
+    # Prepare directory for images.
+    rm -rf ${IMGDIR}/${COREOS_VERSION}
+    mkdir -p ${IMGDIR}/${COREOS_VERSION}; cd ${IMGDIR}/${COREOS_VERSION}
+
+    # Download images.
+    curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe.vmlinuz
+    curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz
+
+    # Check the signatures after download.
+    # XXX: Assume local storage is trusted, do not check everytime pod starts.
+    curl --fail -s https://coreos.com/security/image-signing-key/CoreOS_Image_Signing_Key.asc | gpg --import -
+    curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe.vmlinuz.sig
+    curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz.sig
+    gpg --verify coreos_production_pxe.vmlinuz.sig
+    gpg --verify coreos_production_pxe_image.cpio.gz.sig
+
+    # Extract squashfs.
+    zcat coreos_production_pxe_image.cpio.gz | cpio -i --quiet --sparse usr.squashfs && mv usr.squashfs $USRFS
+
+    # Do cleanup.
+    rm -f coreos_production_pxe_image.cpio.gz
+    rm -f coreos_production_pxe.vmlinuz.sig
+    rm -f coreos_production_pxe_image.cpio.gz.sig
+
+    # Create lock.
+    touch done.lock; cd -
+  fi
+fi
 
 #
 # Prepare root FS.
