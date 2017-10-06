@@ -32,6 +32,7 @@ while :; do
   if [ ! -z "${NETWORK_BRIDGE_IP}" ]; then
     break
   fi
+  echo "Waiting for ip address on interface ${NETWORK_BRIDGE_IP}"
   sleep 1
 done
 
