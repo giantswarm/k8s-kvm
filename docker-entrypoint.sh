@@ -147,7 +147,7 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -enable-kvm \
   -net \
   bridge,br=${NETWORK_BRIDGE_NAME},vlan=0,helper=/usr/libexec/qemu-bridge-helper \
-  -net nic,ifname=${NETWORK_TAP_NAME},vlan=0,model=virtio,macaddr=$MAC_ADDRESS \
+  -net nic,name=${NETWORK_TAP_NAME},vlan=0,model=virtio,macaddr=$MAC_ADDRESS \
   -fsdev \
   local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
   -device virtio-9p-pci,fsdev=conf,mount_tag=config-2 \
