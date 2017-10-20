@@ -6,7 +6,7 @@
 #     ${DISK}                   e.g. "4G"
 #     ${HOSTNAME}               e.g. "kvm-master-1"
 #     ${NETWORK_BRIDGE_NAME}    e.g. "br-h8s2l"
-#     ${NETWORK_TAP_NAME}    e.g. "tap-h8s2l"
+#     ${NETWORK_TAP_NAME}       e.g. "tap-h8s2l"
 #     ${MEMORY}                 e.g. "2048"
 #     ${ROLE}                   e.g. "master" or "worker"
 #     ${CLOUD_CONFIG_PATH}      e.g. "/cloudconfig/user_data"
