@@ -5,5 +5,5 @@ RUN dnf -y update && \
     dnf clean all
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-ADD ./qemu-if* /etc/
+COPY qemu-ifup /etc/qemu-ifup
 ENTRYPOINT ["/docker-entrypoint.sh"]
