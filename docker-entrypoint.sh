@@ -147,8 +147,8 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -machine accel=kvm -cpu host -smp ${CORES} \
   -m ${MEMORY} \
   -enable-kvm \
-  -device virtio-net-pci,fd=h,mac=${MAC_ADDRESS},netdev=${NETWORK_TAP_NAME} \
-  -netdev tap,id=${NETWORK_TAP_NAME},ifname=${NETWORK_TAP_NAME},br=${NETWORK_BRIDGE_NAME},script=no,downscript=no \
+  -device virtio-net-pci,mac=${MAC_ADDRESS},netdev=${NETWORK_TAP_NAME} \
+  -netdev tap,fd=h,id=${NETWORK_TAP_NAME},ifname=${NETWORK_TAP_NAME},br=${NETWORK_BRIDGE_NAME},script=no,downscript=no \
   -netdev bridge,id=${NETWORK_BRIDGE_NAME},br=${NETWORK_BRIDGE_NAME},helper=/usr/libexec/qemu-bridge-helper \
   -fsdev \
   local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
