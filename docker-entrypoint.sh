@@ -139,15 +139,17 @@ mkdir -p "${raw_cloud_config_dir}"
 cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_cloud_config_path}"
 echo "hostname: '${HOSTNAME}'" >> "${raw_cloud_config_path}"
 
+/sbin/tunctl -t ${NETWORK_TAP_NAME}
+
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -name ${HOSTNAME} \
   -nographic \
   -machine accel=kvm -cpu host -smp ${CORES} \
   -m ${MEMORY} \
   -enable-kvm \
-  -net \
-  bridge,br=${NETWORK_BRIDGE_NAME},vlan=0,helper=/usr/libexec/qemu-bridge-helper \
-  -net nic,name=${NETWORK_TAP_NAME},vlan=0,model=virtio,macaddr=$MAC_ADDRESS \
+  -device virtio-net-pci,mac=${MAC_ADDRESS},netdev=${NETWORK_TAP_NAME},vlan=0 \
+  -netdev tap,id=${NETWORK_TAP_NAME},ifname=${NETWORK_TAP_NAME},br=${NETWORK_BRIDGE_NAME},script=no,downscript=no \
+  -netdev bridge,id=${NETWORK_BRIDGE_NAME},br=${NETWORK_BRIDGE_NAME},helper=/usr/libexec/qemu-bridge-helper \
   -fsdev \
   local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
   -device virtio-9p-pci,fsdev=conf,mount_tag=config-2 \
@@ -162,3 +164,6 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -kernel \
   $KERNEL \
   -append "console=ttyS0 root=/dev/disk/by-id/virtio-rootfs rootflags=rw mount.usr=/dev/disk/by-id/virtio-usr.readonly mount.usrflags=ro"
+
+/sbin/tunctl -d ${NETWORK_TAP_NAME}
+
