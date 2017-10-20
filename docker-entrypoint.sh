@@ -6,7 +6,7 @@
 #     ${DISK}                   e.g. "4G"
 #     ${HOSTNAME}               e.g. "kvm-master-1"
 #     ${NETWORK_BRIDGE_NAME}    e.g. "br-h8s2l"
-#     ${NETWORK_TAP_NAME}       e.g. "tap-h8s2l"
+#     ${NETWORK_TAP_NAME}    e.g. "tap-h8s2l"
 #     ${MEMORY}                 e.g. "2048"
 #     ${ROLE}                   e.g. "master" or "worker"
 #     ${CLOUD_CONFIG_PATH}      e.g. "/cloudconfig/user_data"
@@ -145,9 +145,8 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -machine accel=kvm -cpu host -smp ${CORES} \
   -m ${MEMORY} \
   -enable-kvm \
-  -device virtio-net-pci,mac=${MAC_ADDRESS},netdev=${NETWORK_TAP_NAME} \
-  -netdev tap,id=${NETWORK_TAP_NAME},br=${NETWORK_BRIDGE_NAME},helper=/qemu-helper \
-  -netdev bridge,id=${NETWORK_BRIDGE_NAME},br=${NETWORK_BRIDGE_NAME},helper=/qemu-helper \
+  -net bridge,ifname=${NETWORK_TAP_NAME},br=${NETWORK_BRIDGE_NAME},vlan=0,helper=/usr/libexec/qemu-bridge-helper \
+  -net nic,vlan=0,model=virtio,macaddr=$MAC_ADDRESS \
   -fsdev \
   local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
   -device virtio-9p-pci,fsdev=conf,mount_tag=config-2 \
