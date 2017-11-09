@@ -151,8 +151,8 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
   -device virtio-9p-pci,fsdev=conf,mount_tag=config-2 \
   $ETCD_DATA_VOLUME_PATH \
-  -drive if=ide,file=$USRFS,format=raw,serial=usr.readonly \
-  -drive if=ide,file=$ROOTFS,format=raw,discard=on,serial=rootfs \
+  -drive if=scsi,cache=none,file=$USRFS,format=raw,serial=usr.readonly \
+  -drive if=scsi,cache=none,file=$ROOTFS,format=raw,discard=on,serial=rootfs \
   -device sga \
   -serial mon:stdio \
   -kernel \
