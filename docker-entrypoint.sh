@@ -142,7 +142,7 @@ echo "hostname: '${HOSTNAME}'" >> "${raw_cloud_config_path}"
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -name ${HOSTNAME} \
   -nographic \
-  -machine accel=kvm 
+  -machine accel=kvm \
   -cpu host,pmu=off \
   -smp ${CORES} \
   -m ${MEMORY} \
