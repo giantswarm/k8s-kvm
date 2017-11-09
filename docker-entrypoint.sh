@@ -150,7 +150,7 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -device virtio-net-pci,netdev=${NETWORK_TAP_NAME} \
   -netdev tap,id=${NETWORK_TAP_NAME},br=${NETWORK_BRIDGE_NAME},ifname=${NETWORK_TAP_NAME},downscript=no \
   -fsdev local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
-  -device scsi-hd,drive=conf,serial=config-2 \
+  -device virtio-blk-pci,drive=conf,serial=config-2 \
   $ETCD_DATA_VOLUME_PATH \
   -drive if=scsi,cache=none,file=$USRFS,format=raw,serial=usr.readonly \
   -drive if=scsi,cache=none,file=$ROOTFS,format=raw,discard=on,serial=rootfs \
