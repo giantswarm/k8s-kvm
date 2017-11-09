@@ -143,7 +143,7 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -name ${HOSTNAME} \
   -nographic \
   -machine accel=kvm 
-  -cpu host \
+  -cpu host,pmu=off \
   -smp ${CORES} \
   -m ${MEMORY} \
   -enable-kvm \
