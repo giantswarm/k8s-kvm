@@ -33,7 +33,7 @@ while :; do
   if [ ! -z "${NETWORK_BRIDGE_IP}" ]; then
     break
   fi
-  echo "Waiting for ip address on interface ${NETWORK_BRIDGE_IP}."
+  echo "Waiting for ip address on interface ${NETWORK_BRIDGE_NAME}."
   sleep 1
 done
 
@@ -149,7 +149,7 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -netdev tap,id=${NETWORK_TAP_NAME},br=${NETWORK_BRIDGE_NAME},ifname=${NETWORK_TAP_NAME},downscript=no \
   -fsdev \
   local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
-  -device scsi-hd,fsdev=conf,mount_tag=config-2 \
+  -device virtio-9p-pci,fsdev=conf,mount_tag=config-2 \
   $ETCD_DATA_VOLUME_PATH \
   -drive \
   if=scsi,file=$USRFS,format=raw,serial=usr.readonly \
