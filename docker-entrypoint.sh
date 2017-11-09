@@ -160,4 +160,4 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -serial mon:stdio \
   -kernel \
   $KERNEL \
-  -append "console=ttyS0 root=/dev/disk/by-id/virtio-rootfs rootflags=rw mount.usr=/dev/disk/by-id/virtio-usr.readonly mount.usrflags=ro"
+  -append "console=ttyS0 root=/dev/disk/by-id/scsi-rootfs rootflags=rw mount.usr=/dev/disk/by-id/scsi-usr.readonly mount.usrflags=ro"
