@@ -149,12 +149,12 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -netdev tap,id=${NETWORK_TAP_NAME},br=${NETWORK_BRIDGE_NAME},ifname=${NETWORK_TAP_NAME},downscript=no \
   -fsdev \
   local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
-  -device virtio-9p-pci,fsdev=conf,mount_tag=config-2 \
+  -device scsi-hd,fsdev=conf,mount_tag=config-2 \
   $ETCD_DATA_VOLUME_PATH \
   -drive \
-  if=virtio,file=$USRFS,format=raw,serial=usr.readonly \
+  if=scsi,file=$USRFS,format=raw,serial=usr.readonly \
   -drive \
-  if=virtio,file=$ROOTFS,format=raw,discard=on,serial=rootfs \
+  if=scsi,file=$ROOTFS,format=raw,discard=on,serial=rootfs \
   -device \
   sga \
   -serial mon:stdio \
