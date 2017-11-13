@@ -139,6 +139,7 @@ mkdir -p "${raw_cloud_config_dir}"
 cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_cloud_config_path}"
 echo "hostname: '${HOSTNAME}'" >> "${raw_cloud_config_path}"
 
+#added PMU off to `-cpu host,pmu=off` https://github.com/giantswarm/k8s-kvm/pull/14
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -name ${HOSTNAME} \
   -nographic \
