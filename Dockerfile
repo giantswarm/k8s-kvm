@@ -1,4 +1,4 @@
-FROM fedora:26
+FROM fedora:24
 
 RUN dnf -y update && \
     dnf -y install net-tools libattr libattr-devel xfsprogs bridge-utils qemu-kvm  qemu-system-x86 qemu-img gpg && \

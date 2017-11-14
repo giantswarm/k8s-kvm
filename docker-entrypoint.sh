@@ -139,25 +139,23 @@ mkdir -p "${raw_cloud_config_dir}"
 cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_cloud_config_path}"
 echo "hostname: '${HOSTNAME}'" >> "${raw_cloud_config_path}"
 
+#added PMU off to `-cpu host,pmu=off` https://github.com/giantswarm/k8s-kvm/pull/14
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -name ${HOSTNAME} \
   -nographic \
-  -machine accel=kvm -cpu host -smp ${CORES} \
+  -machine accel=kvm \
+  -cpu host,pmu=off \
+  -smp ${CORES} \
   -m ${MEMORY} \
   -enable-kvm \
   -device virtio-net-pci,netdev=${NETWORK_TAP_NAME} \
-  -netdev tap,id=${NETWORK_TAP_NAME},br=${NETWORK_BRIDGE_NAME},ifname=${NETWORK_TAP_NAME},downscript=no \
-  -fsdev \
-  local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
+  -netdev tap,id=${NETWORK_TAP_NAME},ifname=${NETWORK_TAP_NAME},downscript=no \
+  -fsdev local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
   -device virtio-9p-pci,fsdev=conf,mount_tag=config-2 \
   $ETCD_DATA_VOLUME_PATH \
-  -drive \
-  if=virtio,file=$USRFS,format=raw,serial=usr.readonly \
-  -drive \
-  if=virtio,file=$ROOTFS,format=raw,discard=on,serial=rootfs \
-  -device \
-  sga \
+  -drive if=virtio,file=$USRFS,format=raw,serial=usr.readonly \
+  -drive if=virtio,file=$ROOTFS,format=raw,discard=on,serial=rootfs \
+  -device sga \
   -serial mon:stdio \
-  -kernel \
-  $KERNEL \
+  -kernel $KERNEL \
   -append "console=ttyS0 root=/dev/disk/by-id/virtio-rootfs rootflags=rw mount.usr=/dev/disk/by-id/virtio-usr.readonly mount.usrflags=ro"
