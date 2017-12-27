@@ -156,6 +156,7 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -drive if=virtio,file=$USRFS,format=raw,serial=usr.readonly \
   -drive if=virtio,file=$ROOTFS,format=raw,discard=on,serial=rootfs \
   -device sga \
-  -serial mon:stdio \
+  -serial stdio \
+  -monitor unix:/qemu-monitor,server,nowait \
   -kernel $KERNEL \
   -append "console=ttyS0 root=/dev/disk/by-id/virtio-rootfs rootflags=rw mount.usr=/dev/disk/by-id/virtio-usr.readonly mount.usrflags=ro"
