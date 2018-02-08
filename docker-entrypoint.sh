@@ -90,6 +90,8 @@ if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
     curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz.sig
     gpg --verify coreos_production_pxe.vmlinuz.sig
     gpg --verify coreos_production_pxe_image.cpio.gz.sig
+    
+    mv coreos_production_pxe.vmlinuz $KERNEL
 
     # Extract squashfs.
     zcat coreos_production_pxe_image.cpio.gz | cpio -i --quiet --sparse usr.squashfs && mv usr.squashfs $USRFS
@@ -102,6 +104,9 @@ if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
     # Create lock.
     touch done.lock; cd -
   fi
+else
+	echo "ERROR: COREOS_VERSION env not set."
+	exit 1
 fi
 
 #
