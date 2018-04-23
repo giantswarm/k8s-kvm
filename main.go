@@ -6,5 +6,11 @@ import (
 )
 
 func main() {
-	fmt.Printf("%#v\n", os.Args)
+	fmt.Printf("\n")
+	fmt.Printf("\n")
+	fmt.Printf("\n")
+	fmt.Printf("args: %#v\n", os.Args)
+	fmt.Printf("\n")
+	fmt.Printf("\n")
+	fmt.Printf("\n")
 }
