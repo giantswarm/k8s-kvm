@@ -7,4 +7,5 @@ RUN dnf -y update && \
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 COPY qemu-ifup /etc/qemu-ifup
 COPY qemu-shutdown /qemu-shutdown
+COPY k8s-kvm /k8s-kvm
 ENTRYPOINT ["/docker-entrypoint.sh"]

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sleep 300
+/k8s-kvm --wait-for-node-status="Drained"
 
 # Send graceful shutdown command to qemu monitor.
 echo system_powerdown | socat - UNIX-CONNECT:/qemu-monitor
@@ -10,3 +10,5 @@ while [ -S /qemu-monitor ]
 do
   sleep 0.1
 done
+
+/k8s-kvm --set-node-status-to="ShutDown"
