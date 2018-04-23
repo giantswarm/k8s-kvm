@@ -14,6 +14,16 @@
 
 set -eu
 
+if [[ "${1}" == "version" ]]; then
+  echo "no version command supported"
+  exit 0
+fi
+
+if [[ "${1}" == "--help" ]]; then
+  echo "no help flag supported"
+  exit 0
+fi
+
 raw_cloud_config_dir="/usr/code/cloudconfig/openstack/latest"
 raw_cloud_config_path="${raw_cloud_config_dir}/user_data"
 
@@ -90,7 +100,7 @@ if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
     curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz.sig
     gpg --verify coreos_production_pxe.vmlinuz.sig
     gpg --verify coreos_production_pxe_image.cpio.gz.sig
-    
+
     mv coreos_production_pxe.vmlinuz $KERNEL
 
     # Extract squashfs.
