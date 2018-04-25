@@ -1,5 +1,7 @@
 #!/bin/bash
 
+sleep 60
+
 # Send graceful shutdown command to qemu monitor.
 echo system_powerdown | socat - UNIX-CONNECT:/qemu-monitor
 
