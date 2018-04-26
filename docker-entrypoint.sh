@@ -11,7 +11,7 @@
 #     ${ROLE}                   e.g. "master" or "worker"
 #     ${CLOUD_CONFIG_PATH}      e.g. "/cloudconfig/user_data"
 #     ${COREOS_VERSION}         e.g. "1409.7.0"
-
+sleep 6h
 set -eu
 
 raw_cloud_config_dir="/usr/code/cloudconfig/openstack/latest"
