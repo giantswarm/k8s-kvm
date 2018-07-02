@@ -161,6 +161,7 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -drive if=virtio,file=$USRFS,format=raw,serial=usr.readonly \
   -drive if=virtio,file=$ROOTFS,format=raw,discard=on,serial=rootfs \
   -device sga \
+  -device virtio-rng-pci \
   -serial stdio \
   -monitor unix:/qemu-monitor,server,nowait \
   -kernel $KERNEL \
