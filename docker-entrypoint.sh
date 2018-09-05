@@ -3,7 +3,8 @@
 # The following parameters have to be given.
 #
 #     ${CORES}                  e.g. "1"
-#     ${DISK}                   e.g. "4G"
+#     ${DISK_DOCKER}            e.g. "4G"
+#     ${DISK_OS}                e.g. "4G"
 #     ${HOSTNAME}               e.g. "kvm-master-1"
 #     ${NETWORK_BRIDGE_NAME}    e.g. "br-h8s2l"
 #     ${NETWORK_TAP_NAME}       e.g. "tap-h8s2l"
@@ -53,6 +54,7 @@ mkdir -p /usr/code/rootfs/
 mkdir -p /usr/code/cloudconfig/openstack/latest/
 
 ROOTFS="/usr/code/rootfs/rootfs.img"
+DOCKERFS="/usr/code/rootfs/dockerfs.img"
 MAC_ADDRESS=$(printf 'DE:AD:BE:%02X:%02X:%02X\n' $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)))
 
 
@@ -113,9 +115,11 @@ fi
 # Prepare root FS.
 #
 
-rm -f $ROOTFS
-truncate -s ${DISK} $ROOTFS
-mkfs.xfs $ROOTFS
+rm -f ${ROOTFS} ${DOCKERFS}
+truncate -s ${DISK_OS} ${ROOTFS}
+mkfs.xfs ${ROOTFS}
+truncate -s ${DISK_DOCKER} ${DOCKERFS}
+mkfs.xfs ${DOCKERFS}
 
 #
 # Ensure proper mounts.
@@ -158,8 +162,9 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -fsdev local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
   -device virtio-9p-pci,fsdev=conf,mount_tag=config-2 \
   $ETCD_DATA_VOLUME_PATH \
-  -drive if=virtio,file=$USRFS,format=raw,serial=usr.readonly \
-  -drive if=virtio,file=$ROOTFS,format=raw,discard=on,serial=rootfs \
+  -drive if=virtio,file=${USRFS},format=raw,serial=usr.readonly \
+  -drive if=virtio,file=${ROOTFS},format=raw,discard=on,serial=rootfs \
+  -drive if=virtio,file=${DOCKERFS},format=raw,discard=on,serial=dockerfs \
   -device sga \
   -device virtio-rng-pci \
   -serial stdio \
