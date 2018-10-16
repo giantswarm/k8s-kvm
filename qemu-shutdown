@@ -13,7 +13,7 @@ DEFER="yes"
 while [ "$DEFER" != "no" -a "$DEFER" != "false" -a $POLL_TIMEOUT -gt 0 ]
 do
     sleep $POLL_INTERVAL
-    DEFER=$(/usr/bin/curl -qsS http://127.0.0.1:8000/v1/defer/)
+    DEFER=$(/usr/bin/curl -qsS http://127.0.0.1:60080/v1/defer/)
     echo "GET /v1/defer: $DEFER"
     POLL_TIMEOUT=$(/bin/expr $POLL_TIMEOUT - $POLL_INTERVAL)
 done
