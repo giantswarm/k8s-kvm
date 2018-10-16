@@ -1,6 +1,22 @@
 #!/bin/bash
 
+# TODO: Remove this when shutdown-deferrer is fully implemented and returns
+# proper defer status.
 sleep 60
+
+POLL_INTERVAL=5
+POLL_TIMEOUT=600
+
+# Poll shutdown-deferrer service in order to wait for proper node draining
+# before VM shutdown.
+DEFER="yes"
+while [ "$DEFER" != "no" -a "$DEFER" != "false" -a $POLL_TIMEOUT -gt 0 ]
+do
+    sleep $POLL_INTERVAL
+    DEFER=$(/usr/bin/curl -qsS http://127.0.0.1:60080/v1/defer/)
+    echo "GET /v1/defer: $DEFER"
+    POLL_TIMEOUT=$(/bin/expr $POLL_TIMEOUT - $POLL_INTERVAL)
+done
 
 # Send graceful shutdown command to qemu monitor.
 echo system_powerdown | socat - UNIX-CONNECT:/qemu-monitor
