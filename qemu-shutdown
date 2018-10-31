@@ -7,7 +7,7 @@ then
 fi
 
 poll_interval=5
-poll_timeout=600
+poll_timeout=120
 shutdown_deferrer_url=$1
 
 # Poll shutdown-deferrer service in order to wait for proper node draining
