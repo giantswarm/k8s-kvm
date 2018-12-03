@@ -4,6 +4,7 @@
 #
 #     ${CORES}                  e.g. "1"
 #     ${DISK_DOCKER}            e.g. "4G"
+#     ${DISK_KUBELET}           e.g. "4G"
 #     ${DISK_OS}                e.g. "4G"
 #     ${HOSTNAME}               e.g. "kvm-master-1"
 #     ${NETWORK_BRIDGE_NAME}    e.g. "br-h8s2l"
@@ -55,6 +56,7 @@ mkdir -p /usr/code/cloudconfig/openstack/latest/
 
 ROOTFS="/usr/code/rootfs/rootfs.img"
 DOCKERFS="/usr/code/rootfs/dockerfs.img"
+KUBELETFS="/usr/code/rootfs/kubeletfs.img"
 MAC_ADDRESS=$(printf 'DE:AD:BE:%02X:%02X:%02X\n' $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)))
 
 
@@ -120,6 +122,8 @@ truncate -s ${DISK_OS} ${ROOTFS}
 mkfs.xfs ${ROOTFS}
 truncate -s ${DISK_DOCKER} ${DOCKERFS}
 mkfs.xfs ${DOCKERFS}
+truncate -s ${DISK_KUBELET} ${KUBELETFS}
+mkfs.xfs ${KUBELETFS}
 
 #
 # Ensure proper mounts.
@@ -165,6 +169,7 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -drive if=virtio,file=${USRFS},format=raw,serial=usr.readonly \
   -drive if=virtio,file=${ROOTFS},format=raw,discard=on,serial=rootfs \
   -drive if=virtio,file=${DOCKERFS},format=raw,discard=on,serial=dockerfs \
+  -drive if=virtio,file=${KUBELETFS},format=raw,discard=on,serial=kubeletfs \
   -device sga \
   -device virtio-rng-pci \
   -serial stdio \
