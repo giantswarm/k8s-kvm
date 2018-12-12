@@ -117,7 +117,7 @@ fi
 # Prepare root FS.
 #
 
-rm -f ${ROOTFS} ${DOCKERFS}
+rm -f ${ROOTFS} ${DOCKERFS} ${KUBELETFS}
 truncate -s ${DISK_OS} ${ROOTFS}
 mkfs.xfs ${ROOTFS}
 truncate -s ${DISK_DOCKER} ${DOCKERFS}
