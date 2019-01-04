@@ -6,6 +6,7 @@
 #     ${DISK_DOCKER}            e.g. "4G"
 #     ${DISK_KUBELET}           e.g. "4G"
 #     ${DISK_OS}                e.g. "4G"
+#     ${DNS_SERVERS}            e.g. "1.1.1.1:8.8.4.4"
 #     ${HOSTNAME}               e.g. "kvm-master-1"
 #     ${NETWORK_BRIDGE_NAME}    e.g. "br-h8s2l"
 #     ${NETWORK_TAP_NAME}       e.g. "tap-h8s2l"
@@ -17,6 +18,10 @@
 set -eu
 
 raw_ignition_dir="/usr/code/ignition"
+
+if [ -z ${DNS_SERVERS} ]; then
+    DNS_SERVERS="1.1.1.1:8.8.4.4"
+fi
 
 if [ -z ${CLOUD_CONFIG_PATH} ]; then
     echo "CLOUD_CONFIG_PATH must be set." >&2
@@ -149,13 +154,16 @@ cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.j
 # Usage of ./qeme-node-setup:
 #  -bridge-ip string
 #        IP address of the bridge (used to retrieve interface ip).
+#  -dns-servers string
+#        Colon separated list of DNS servers.
 #  -hostname string
 #        Hostname of the tenant node.
 #  -main-config string
 #        Path to main ignition config (appended to small).
 #  -out string
 #        Path to save resulting ignition config.
-/qemu-node-setup -bridge-ip=${NETWORK_BRIDGE_IP} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" -out="${raw_ignition_dir}/final.json"
+/qemu-node-setup -bridge-ip=${NETWORK_BRIDGE_IP} -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
+                 -out="${raw_ignition_dir}/final.json"
 
 #added PMU off to `-cpu host,pmu=off` https://github.com/giantswarm/k8s-kvm/pull/14
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
