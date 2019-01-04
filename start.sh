@@ -69,56 +69,6 @@ INITRD="${IMGDIR}/coreos_production_pxe_image.cpio.gz"
 
 mkdir -p ${IMGDIR}
 
-# Use specific CoreOS version, if ${COREOS_VERSION} is set and not empty.
-# Check if images already in place, if not download them.
-if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
-  KERNEL="${IMGDIR}/${COREOS_VERSION}/coreos_production_pxe.vmlinuz"
-  INITRD="${IMGDIR}/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz"
-
-  # Download if does not exist.
-  if [ ! -f "${IMGDIR}/${COREOS_VERSION}/done.lock" ]; then
-
-    # Prepare directory for images.
-    rm -rf ${IMGDIR}/${COREOS_VERSION}
-    mkdir -p ${IMGDIR}/${COREOS_VERSION}; cd ${IMGDIR}/${COREOS_VERSION}
-
-    # Download images.
-    curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe.vmlinuz
-    curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz
-
-    # Check the signatures after download.
-    # XXX: Assume local storage is trusted, do not check everytime pod starts.
-    curl --fail -s https://coreos.com/security/image-signing-key/CoreOS_Image_Signing_Key.asc | gpg --import -
-    curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe.vmlinuz.sig
-    curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz.sig
-    gpg --verify coreos_production_pxe.vmlinuz.sig
-    gpg --verify coreos_production_pxe_image.cpio.gz.sig
-
-    # Do cleanup.
-    rm -f coreos_production_pxe.vmlinuz.sig
-    rm -f coreos_production_pxe_image.cpio.gz.sig
-
-    # Create lock.
-    touch done.lock; cd -
-  fi
-else
-	echo "ERROR: COREOS_VERSION env not set."
-	exit 1
-fi
-
-
-#
-# Prepare root FS.
-#
-
-rm -f ${ROOTFS} ${DOCKERFS} ${KUBELETFS}
-truncate -s ${DISK_OS} ${ROOTFS}
-mkfs.xfs ${ROOTFS}
-truncate -s ${DISK_DOCKER} ${DOCKERFS}
-mkfs.xfs ${DOCKERFS}
-truncate -s ${DISK_KUBELET} ${KUBELETFS}
-mkfs.xfs ${KUBELETFS}
-
 #
 # Ensure proper mounts.
 #
@@ -138,26 +88,9 @@ if [ ! -z ${PIN_CPU+x} ] && [ ! -z "$PIN_CPU" ]; then
   TASKSET="taskset -ac $PIN_CPU"
 fi
 
-#
-# Boot the VM.
-#
 
-# Extract ignition from mounted configmap into raw provision config.
-cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.json"
-
-# Generate final ignition with static network configuration and hostname
-# Usage of ./qeme-node-setup:
-#  -bridge-ip string
-#        IP address of the bridge (used to retrieve interface ip).
-#  -hostname string
-#        Hostname of the tenant node.
-#  -main-config string
-#        Path to main ignition config (appended to small).
-#  -out string
-#        Path to save resulting ignition config.
 /qemu-node-setup -bridge-ip=${NETWORK_BRIDGE_IP} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" -out="${raw_ignition_dir}/final.json"
 
-sleep 1000000
 
 #added PMU off to `-cpu host,pmu=off` https://github.com/giantswarm/k8s-kvm/pull/14
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
