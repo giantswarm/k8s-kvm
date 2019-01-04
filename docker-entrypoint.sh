@@ -157,8 +157,6 @@ cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.j
 #        Path to save resulting ignition config.
 /qemu-node-setup -bridge-ip=${NETWORK_BRIDGE_IP} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" -out="${raw_ignition_dir}/final.json"
 
-sleep 1000000
-
 #added PMU off to `-cpu host,pmu=off` https://github.com/giantswarm/k8s-kvm/pull/14
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -name ${HOSTNAME} \
@@ -171,10 +169,13 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -device virtio-net-pci,netdev=${NETWORK_TAP_NAME},mac=${MAC_ADDRESS} \
   -netdev tap,id=${NETWORK_TAP_NAME},ifname=${NETWORK_TAP_NAME},downscript=no \
   -fw_cfg name=opt/com.coreos/config,file=${raw_ignition_dir}/final.json \
+  -drive if=none,file=${ROOTFS},format=raw,discard=on,id=rootfs \
+  -device virtio-blk-pci,drive=rootfs,serial=rootfs \
+  -drive if=none,file=${DOCKERFS},format=raw,discard=on,id=dockerfs \
+  -device virtio-blk-pci,drive=dockerfs,serial=dockerfs \
+  -drive if=none,file=${KUBELETFS},format=raw,discard=on,id=kubeletfs \
+  -device virtio-blk-pci,drive=kubeletfs,serial=kubeletfs \
   $ETCD_DATA_VOLUME_PATH \
-  -drive if=virtio,file=${ROOTFS},format=raw,discard=on,serial=rootfs \
-  -drive if=virtio,file=${DOCKERFS},format=raw,discard=on,serial=dockerfs \
-  -drive if=virtio,file=${KUBELETFS},format=raw,discard=on,serial=kubeletfs \
   -device sga \
   -device virtio-rng-pci \
   -serial stdio \
