@@ -147,7 +147,8 @@ fi
 cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.json"
 
 # Generate final ignition with static network configuration and hostname
-# Usage of ./qeme-node-setup:
+# Configuration tool: https://github.com/giantswarm/qemu-node-setup
+# Usage of ./qemu-node-setup:
 #  -bridge-ip string
 #        IP address of the bridge (used to retrieve interface ip).
 #  -dns-servers string
