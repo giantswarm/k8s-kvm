@@ -77,7 +77,7 @@ if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
   INITRD="${IMGDIR}/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz"
 
   # Download if does not exist.
-  if [ ! -f "${IMGDIR}/${COREOS_VERSION}/done.lock" ]; then
+  if [ ! -f "${IMGDIR}/${COREOS_VERSION}/migration.lock" ] || [ ! -f "${IMGDIR}/${COREOS_VERSION}/done.lock" ]; then
 
     # Prepare directory for images.
     rm -rf ${IMGDIR}/${COREOS_VERSION}
@@ -100,7 +100,7 @@ if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
     rm -f coreos_production_pxe_image.cpio.gz.sig
 
     # Create lock.
-    touch done.lock; cd -
+    touch done.lock; touch migration.lock; cd -
   fi
 else
 	echo "ERROR: COREOS_VERSION env not set."
