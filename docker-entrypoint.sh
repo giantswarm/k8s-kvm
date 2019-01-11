@@ -6,6 +6,7 @@
 #     ${DISK_DOCKER}            e.g. "4G"
 #     ${DISK_KUBELET}           e.g. "4G"
 #     ${DISK_OS}                e.g. "4G"
+#     ${DNS_SERVERS}            e.g. "1.1.1.1,8.8.4.4"
 #     ${HOSTNAME}               e.g. "kvm-master-1"
 #     ${NETWORK_BRIDGE_NAME}    e.g. "br-h8s2l"
 #     ${NETWORK_TAP_NAME}       e.g. "tap-h8s2l"
@@ -16,11 +17,10 @@
 
 set -eu
 
-raw_cloud_config_dir="/usr/code/cloudconfig/openstack/latest"
-raw_cloud_config_path="${raw_cloud_config_dir}/user_data"
+raw_ignition_dir="/usr/code/ignition"
 
-if [ -z ${CLOUD_CONFIG_PATH} ] || [ "${CLOUD_CONFIG_PATH}" == "${raw_cloud_config_path}" ]; then
-    echo "CLOUD_CONFIG_PATH must be set, and must be different than '${raw_cloud_config_path}'. Got '${CLOUD_CONFIG_PATH}'." >&2
+if [ -z ${CLOUD_CONFIG_PATH} ]; then
+    echo "CLOUD_CONFIG_PATH must be set." >&2
     exit 1
 fi
 
@@ -52,7 +52,7 @@ echo "allow ${NETWORK_BRIDGE_NAME}" >/etc/qemu/bridge.conf
 #
 
 mkdir -p /usr/code/rootfs/
-mkdir -p /usr/code/cloudconfig/openstack/latest/
+mkdir -p ${raw_ignition_dir}
 
 ROOTFS="/usr/code/rootfs/rootfs.img"
 DOCKERFS="/usr/code/rootfs/dockerfs.img"
@@ -65,19 +65,19 @@ MAC_ADDRESS=$(printf 'DE:AD:BE:%02X:%02X:%02X\n' $((RANDOM % 256)) $((RANDOM % 2
 #
 
 IMGDIR="/usr/code/images"
-KERNEL="${IMGDIR}/coreos_production_qemu.vmlinuz"
-USRFS="${IMGDIR}/coreos_production_qemu_usr_image.squashfs"
+KERNEL="${IMGDIR}/coreos_production_pxe.vmlinuz"
+INITRD="${IMGDIR}/coreos_production_pxe_image.cpio.gz"
 
 mkdir -p ${IMGDIR}
 
 # Use specific CoreOS version, if ${COREOS_VERSION} is set and not empty.
 # Check if images already in place, if not download them.
 if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
-  KERNEL="${IMGDIR}/${COREOS_VERSION}/coreos_production_qemu.vmlinuz"
-  USRFS="${IMGDIR}/${COREOS_VERSION}/coreos_production_qemu_usr_image.squashfs"
+  KERNEL="${IMGDIR}/${COREOS_VERSION}/coreos_production_pxe.vmlinuz"
+  INITRD="${IMGDIR}/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz"
 
   # Download if does not exist.
-  if [ ! -f "${IMGDIR}/${COREOS_VERSION}/done.lock" ]; then
+  if [ ! -f "${IMGDIR}/${COREOS_VERSION}/migration.lock" ] || [ ! -f "${IMGDIR}/${COREOS_VERSION}/done.lock" ]; then
 
     # Prepare directory for images.
     rm -rf ${IMGDIR}/${COREOS_VERSION}
@@ -94,24 +94,19 @@ if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
     curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz.sig
     gpg --verify coreos_production_pxe.vmlinuz.sig
     gpg --verify coreos_production_pxe_image.cpio.gz.sig
-    
-    mv coreos_production_pxe.vmlinuz $KERNEL
-
-    # Extract squashfs.
-    zcat coreos_production_pxe_image.cpio.gz | cpio -i --quiet --sparse usr.squashfs && mv usr.squashfs $USRFS
 
     # Do cleanup.
-    rm -f coreos_production_pxe_image.cpio.gz
     rm -f coreos_production_pxe.vmlinuz.sig
     rm -f coreos_production_pxe_image.cpio.gz.sig
 
     # Create lock.
-    touch done.lock; cd -
+    touch done.lock; touch migration.lock; cd -
   fi
 else
 	echo "ERROR: COREOS_VERSION env not set."
 	exit 1
 fi
+
 
 #
 # Prepare root FS.
@@ -148,9 +143,24 @@ fi
 # Boot the VM.
 #
 
-mkdir -p "${raw_cloud_config_dir}"
-cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_cloud_config_path}"
-echo "hostname: '${HOSTNAME}'" >> "${raw_cloud_config_path}"
+# Extract ignition from mounted configmap into raw provision config.
+cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.json"
+
+# Generate final ignition with static network configuration and hostname
+# Configuration tool: https://github.com/giantswarm/qemu-node-setup
+# Usage of ./qemu-node-setup:
+#  -bridge-ip string
+#        IP address of the bridge (used to retrieve interface ip).
+#  -dns-servers string
+#        Colon separated list of DNS servers.
+#  -hostname string
+#        Hostname of the tenant node.
+#  -main-config string
+#        Path to main ignition config (appended to small).
+#  -out string
+#        Path to save resulting ignition config.
+/qemu-node-setup -bridge-ip=${NETWORK_BRIDGE_IP} -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
+                 -out="${raw_ignition_dir}/final.json"
 
 #added PMU off to `-cpu host,pmu=off` https://github.com/giantswarm/k8s-kvm/pull/14
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
@@ -163,16 +173,18 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -enable-kvm \
   -device virtio-net-pci,netdev=${NETWORK_TAP_NAME},mac=${MAC_ADDRESS} \
   -netdev tap,id=${NETWORK_TAP_NAME},ifname=${NETWORK_TAP_NAME},downscript=no \
-  -fsdev local,id=conf,security_model=none,readonly,path=/usr/code/cloudconfig \
-  -device virtio-9p-pci,fsdev=conf,mount_tag=config-2 \
+  -fw_cfg name=opt/com.coreos/config,file=${raw_ignition_dir}/final.json \
+  -drive if=none,file=${ROOTFS},format=raw,discard=on,id=rootfs \
+  -device virtio-blk-pci,drive=rootfs,serial=rootfs \
+  -drive if=none,file=${DOCKERFS},format=raw,discard=on,id=dockerfs \
+  -device virtio-blk-pci,drive=dockerfs,serial=dockerfs \
+  -drive if=none,file=${KUBELETFS},format=raw,discard=on,id=kubeletfs \
+  -device virtio-blk-pci,drive=kubeletfs,serial=kubeletfs \
   $ETCD_DATA_VOLUME_PATH \
-  -drive if=virtio,file=${USRFS},format=raw,serial=usr.readonly \
-  -drive if=virtio,file=${ROOTFS},format=raw,discard=on,serial=rootfs \
-  -drive if=virtio,file=${DOCKERFS},format=raw,discard=on,serial=dockerfs \
-  -drive if=virtio,file=${KUBELETFS},format=raw,discard=on,serial=kubeletfs \
   -device sga \
   -device virtio-rng-pci \
   -serial stdio \
   -monitor unix:/qemu-monitor,server,nowait \
   -kernel $KERNEL \
-  -append "console=ttyS0 root=/dev/disk/by-id/virtio-rootfs rootflags=rw mount.usr=/dev/disk/by-id/virtio-usr.readonly mount.usrflags=ro"
+  -initrd $INITRD \
+  -append "console=ttyS0 root=/dev/disk/by-id/virtio-rootfs rootflags=rw coreos.first_boot=1"
