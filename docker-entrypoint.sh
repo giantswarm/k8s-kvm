@@ -166,7 +166,7 @@ cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.j
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -name ${HOSTNAME} \
   -nographic \
-  -machine accel=kvm \
+  -machine type=q35,accel=kvm \
   -cpu host,pmu=off \
   -smp ${CORES} \
   -m ${MEMORY} \
