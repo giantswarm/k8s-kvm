@@ -64,7 +64,7 @@ MAC_ADDRESS=$(printf 'DE:AD:BE:%02X:%02X:%02X\n' $((RANDOM % 256)) $((RANDOM % 2
 # Prepare CoreOS images.
 #
 
-IMGDIR="/usr/code/images"
+IMGDIR="/usr/code/images/v2"
 KERNEL="${IMGDIR}/coreos_production_pxe.vmlinuz"
 INITRD="${IMGDIR}/coreos_production_pxe_image.cpio.gz"
 
@@ -77,7 +77,7 @@ if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
   INITRD="${IMGDIR}/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz"
 
   # Download if does not exist.
-  if [ ! -f "${IMGDIR}/${COREOS_VERSION}/migration.lock" ] || [ ! -f "${IMGDIR}/${COREOS_VERSION}/done.lock" ]; then
+  if [ ! -f "${IMGDIR}/${COREOS_VERSION}/done.lock" ]; then
 
     # Prepare directory for images.
     rm -rf ${IMGDIR}/${COREOS_VERSION}
@@ -100,7 +100,7 @@ if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
     rm -f coreos_production_pxe_image.cpio.gz.sig
 
     # Create lock.
-    touch done.lock; touch migration.lock; cd -
+    touch done.lock; cd -
   fi
 else
 	echo "ERROR: COREOS_VERSION env not set."
