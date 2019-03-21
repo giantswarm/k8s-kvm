@@ -116,7 +116,7 @@ rm -f ${ROOTFS} ${DOCKERFS} ${KUBELETFS}
 truncate -s ${DISK_OS} ${ROOTFS}
 mkfs.xfs ${ROOTFS}
 truncate -s ${DISK_DOCKER} ${DOCKERFS}
-mkfs.ext4 ${DOCKERFS}
+mkfs -t ext4 ${DOCKERFS}
 truncate -s ${DISK_KUBELET} ${KUBELETFS}
 mkfs.xfs ${KUBELETFS}
 
