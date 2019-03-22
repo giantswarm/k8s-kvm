@@ -1,7 +1,7 @@
 FROM fedora:29
 
 RUN dnf -y update && \
-    dnf -y install net-tools libattr libattr-devel xfsprogs bridge-utils qemu-kvm qemu-system-x86 qemu-img gpg socat iproute && \
+    dnf -y install net-tools libattr libattr-devel e2fsprogs xfsprogs bridge-utils qemu-kvm qemu-system-x86 qemu-img gpg socat iproute && \
     dnf clean all
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
