@@ -17,7 +17,7 @@
 
 set -eu
 
-source /var/flannel/networks/${NETWORK_BRIDGE_NAME}.env
+source /run/flannel/networks/${NETWORK_BRIDGE_NAME}.env
 NETWORK_BRIDGE_IP=$(echo ${FLANNEL_SUBNET} | cut -d'/' -f1)
 
 raw_ignition_dir="/usr/code/ignition"
