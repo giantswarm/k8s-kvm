@@ -17,6 +17,9 @@
 
 set -eu
 
+source /var/flannel/networks/${NETWORK_BRIDGE_NAME}.env
+NETWORK_BRIDGE_IP=$(echo ${FLANNEL_SUBNET} | cut -d'/' -f1)
+
 raw_ignition_dir="/usr/code/ignition"
 
 if [ -z ${CLOUD_CONFIG_PATH} ]; then
@@ -25,28 +28,6 @@ if [ -z ${CLOUD_CONFIG_PATH} ]; then
 fi
 
 #
-# Find IP of network bridge.
-#
-
-NETWORK_BRIDGE_IP=""
-
-while :; do
-  NETWORK_BRIDGE_IP=$(/sbin/ifconfig ${NETWORK_BRIDGE_NAME} | grep 'inet ' | awk '{print $2}' | cut -d ':' -f 2)
-  if [ ! -z "${NETWORK_BRIDGE_IP}" ]; then
-    break
-  fi
-  echo "Waiting for ip address on interface ${NETWORK_BRIDGE_IP}."
-  sleep 1
-done
-
-echo "Found network bridge IP '${NETWORK_BRIDGE_IP}' for network bridge name '${NETWORK_BRIDGE_NAME}'."
-
-#
-# Enable the VM's network bridge.
-#
-
-echo "allow ${NETWORK_BRIDGE_NAME}" >/etc/qemu/bridge.conf
-
 #
 # Prepare FS.
 #
@@ -172,7 +153,7 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -m ${MEMORY} \
   -enable-kvm \
   -device virtio-net-pci,netdev=${NETWORK_TAP_NAME},mac=${MAC_ADDRESS} \
-  -netdev tap,id=${NETWORK_TAP_NAME},ifname=${NETWORK_TAP_NAME},downscript=no \
+  -netdev tap,id=${NETWORK_TAP_NAME},ifname=${NETWORK_TAP_NAME},script=no \
   -fw_cfg name=opt/com.coreos/config,file=${raw_ignition_dir}/final.json \
   -drive if=none,file=${ROOTFS},format=raw,discard=on,id=rootfs \
   -device virtio-blk-pci,drive=rootfs,serial=rootfs \
