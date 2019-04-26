@@ -116,9 +116,9 @@ rm -f ${ROOTFS} ${DOCKERFS} ${KUBELETFS}
 truncate -s ${DISK_OS} ${ROOTFS}
 mkfs.xfs ${ROOTFS}
 truncate -s ${DISK_DOCKER} ${DOCKERFS}
-mkfs.ext4 ${DOCKERFS}
+mkfs.xfs ${DOCKERFS}
 truncate -s ${DISK_KUBELET} ${KUBELETFS}
-mkfs.ext4 ${KUBELETFS}
+mkfs.xfs ${KUBELETFS}
 
 #
 # Ensure proper mounts.

@@ -3,7 +3,6 @@ FROM fedora:30
 RUN dnf -y update && \
     dnf -y install \
         bridge-utils-1.6-3.fc30 \
-        e2fsprogs-1.44.6-1.fc30 \
         gnupg2-2.2.13-1.fc30 \
         iproute-5.0.0-2.fc30 \
         libattr-2.4.48-5.fc30 \
