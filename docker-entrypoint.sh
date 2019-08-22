@@ -8,9 +8,10 @@
 #     ${DISK_OS}                e.g. "4G"
 #     ${DNS_SERVERS}            e.g. "1.1.1.1,8.8.4.4"
 #     ${HOSTNAME}               e.g. "kvm-master-1"
+#     ${MEMORY}                 e.g. "2048"
 #     ${NETWORK_BRIDGE_NAME}    e.g. "br-h8s2l"
 #     ${NETWORK_TAP_NAME}       e.g. "tap-h8s2l"
-#     ${MEMORY}                 e.g. "2048"
+#     ${NTP_SERVERS}            e.g. "0.coreos.pool.ntp.org,1.coreos.pool.ntp.org"
 #     ${ROLE}                   e.g. "master" or "worker"
 #     ${CLOUD_CONFIG_PATH}      e.g. "/cloudconfig/user_data"
 #     ${COREOS_VERSION}         e.g. "1409.7.0"
@@ -157,10 +158,12 @@ cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.j
 #        Hostname of the tenant node.
 #  -main-config string
 #        Path to main ignition config (appended to small).
+#  -ntp-servers string
+#        Colon separated list of NTP servers.
 #  -out string
 #        Path to save resulting ignition config.
 /qemu-node-setup -bridge-ip=${NETWORK_BRIDGE_IP} -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
-                 -out="${raw_ignition_dir}/final.json"
+                 -ntp-servers=${NTP_SERVERS} -out="${raw_ignition_dir}/final.json"
 
 #added PMU off to `-cpu host,pmu=off` https://github.com/giantswarm/k8s-kvm/pull/14
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
