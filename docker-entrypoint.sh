@@ -9,8 +9,6 @@
 #     ${DNS_SERVERS}            e.g. "1.1.1.1,8.8.4.4"
 #     ${HOSTNAME}               e.g. "kvm-master-1"
 #     ${MEMORY}                 e.g. "2048"
-#     ${NETWORK_BRIDGE_NAME}    e.g. "br-h8s2l"
-#     ${NETWORK_TAP_NAME}       e.g. "tap-h8s2l"
 #     ${NTP_SERVERS}            e.g. "0.coreos.pool.ntp.org,1.coreos.pool.ntp.org"
 #     ${ROLE}                   e.g. "master" or "worker"
 #     ${CLOUD_CONFIG_PATH}      e.g. "/cloudconfig/user_data"
@@ -24,29 +22,6 @@ if [ -z ${CLOUD_CONFIG_PATH} ]; then
     echo "CLOUD_CONFIG_PATH must be set." >&2
     exit 1
 fi
-
-#
-# Find IP of network bridge.
-#
-
-NETWORK_BRIDGE_IP=""
-
-while :; do
-  NETWORK_BRIDGE_IP=$(/sbin/ifconfig ${NETWORK_BRIDGE_NAME} | grep 'inet ' | awk '{print $2}' | cut -d ':' -f 2)
-  if [ ! -z "${NETWORK_BRIDGE_IP}" ]; then
-    break
-  fi
-  echo "Waiting for ip address on interface ${NETWORK_BRIDGE_IP}."
-  sleep 1
-done
-
-echo "Found network bridge IP '${NETWORK_BRIDGE_IP}' for network bridge name '${NETWORK_BRIDGE_NAME}'."
-
-#
-# Enable the VM's network bridge.
-#
-
-echo "allow ${NETWORK_BRIDGE_NAME}" >/etc/qemu/bridge.conf
 
 #
 # Prepare FS.
@@ -165,6 +140,9 @@ cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.j
 /qemu-node-setup -bridge-ip=${NETWORK_BRIDGE_IP} -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
                  -ntp-servers=${NTP_SERVERS} -out="${raw_ignition_dir}/final.json"
 
+#  -device virtio-net-pci,netdev=tap-qemu,mac=${MAC_ADDRESS} \
+#  -netdev tap,id=${NETWORK_TAP_NAME},ifname=${NETWORK_TAP_NAME},downscript=no \
+
 #added PMU off to `-cpu host,pmu=off` https://github.com/giantswarm/k8s-kvm/pull/14
 exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -name ${HOSTNAME} \
@@ -174,8 +152,7 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -smp ${CORES} \
   -m ${MEMORY} \
   -enable-kvm \
-  -device virtio-net-pci,netdev=${NETWORK_TAP_NAME},mac=${MAC_ADDRESS} \
-  -netdev tap,id=${NETWORK_TAP_NAME},ifname=${NETWORK_TAP_NAME},downscript=no \
+  -nic tap,model=virtio-net-pci,downscript=no,mac=${MAC_ADDRESS} \
   -fw_cfg name=opt/com.coreos/config,file=${raw_ignition_dir}/final.json \
   -drive if=none,file=${ROOTFS},format=raw,discard=on,id=rootfs \
   -device virtio-blk-pci,drive=rootfs,serial=rootfs \
