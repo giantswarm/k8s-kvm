@@ -137,7 +137,10 @@ cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.j
 #        Colon separated list of NTP servers.
 #  -out string
 #        Path to save resulting ignition config.
-/qemu-node-setup -bridge-ip=${NETWORK_BRIDGE_IP} -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
+
+
+sleep 6000s
+/qemu-node-setup -bridge-ip=192.168.0.1 -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
                  -ntp-servers=${NTP_SERVERS} -out="${raw_ignition_dir}/final.json"
 
 #  -device virtio-net-pci,netdev=tap-qemu,mac=${MAC_ADDRESS} \
