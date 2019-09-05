@@ -1,0 +1,22 @@
+#!/bin/bash
+BR_INTERFACE="br-qemu"
+TAP_INTERFACE="tap0"
+ETH_INTERFACE="eth0"
+IP_ADDRESS=$(ip addr show dev br-qemu | grep inet | awk '{print $2}' | cut -d \/ -f1)
+
+
+# create bridge
+brctl addbr ${BR_INTERFACE}
+
+# link bridge with tap and eth interfaces
+brctl addif ${BR_INTERFACE} ${TAP_INTERFACE}
+ip addr flush dev ${ETH_INTERFACE}
+brctl addif ${BR_INTERFACE} ${ETH_INTERFACE}
+
+# set all interafaces 'up'
+ip link set ${TAP_INTERFACE} up
+ip link set ${BR_INTERFACE} up
+ip link set ${ETH_INTERFACE} up
+
+# set ip address to bridge
+ip addr add ${IP_ADDRESS} dev ${BR_INTERFACE}
