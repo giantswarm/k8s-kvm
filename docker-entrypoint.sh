@@ -34,7 +34,7 @@ ROOTFS="/usr/code/rootfs/rootfs.img"
 DOCKERFS="/usr/code/rootfs/dockerfs.img"
 KUBELETFS="/usr/code/rootfs/kubeletfs.img"
 MAC_ADDRESS=$(printf 'DE:AD:BE:%02X:%02X:%02X\n' $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)))
-
+IP_ADDRESS=$(ip addr show dev eth0 | grep inet | awk '{print $2}' | cut -d \/ -f1)
 
 #
 # Prepare CoreOS images.
@@ -139,10 +139,9 @@ cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.j
 #        Path to save resulting ignition config.
 
 
-sleep 6000s
-/qemu-node-setup -bridge-ip=192.168.0.1 -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
+/qemu-node-setup -node-ip=${IP_ADDRESS} -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
                  -ntp-servers=${NTP_SERVERS} -out="${raw_ignition_dir}/final.json"
-
+sleep 60000s
 #  -device virtio-net-pci,netdev=tap-qemu,mac=${MAC_ADDRESS} \
 #  -netdev tap,id=${NETWORK_TAP_NAME},ifname=${NETWORK_TAP_NAME},downscript=no \
 
