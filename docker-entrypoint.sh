@@ -137,7 +137,7 @@ cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.j
 #        Colon separated list of NTP servers.
 #  -out string
 #        Path to save resulting ignition config.
-
+sleep 30s
 
 /qemu-node-setup -node-ip=${IP_ADDRESS} -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
                  -ntp-servers=${NTP_SERVERS} -out="${raw_ignition_dir}/final.json"
