@@ -1,12 +1,13 @@
 #!/bin/bash
+#
+# qemu-ifup is a script that will configure bridge networking for the KVM
+#
 
 set -eu
 
 BR_INTERFACE="br-qemu"
 TAP_INTERFACE="tap0"
 ETH_INTERFACE="eth0"
-#IP_ADDRESS=$(ip addr show dev eth0 | grep inet | awk '{print $2}' | cut -d \/ -f1)
-
 
 # create bridge
 brctl addbr ${BR_INTERFACE}

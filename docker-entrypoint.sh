@@ -34,7 +34,7 @@ ROOTFS="/usr/code/rootfs/rootfs.img"
 DOCKERFS="/usr/code/rootfs/dockerfs.img"
 KUBELETFS="/usr/code/rootfs/kubeletfs.img"
 MAC_ADDRESS=$(printf 'DE:AD:BE:%02X:%02X:%02X\n' $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)))
-IP_ADDRESS=$(ip addr show dev eth0 | grep inet | awk '{print $2}' | cut -d \/ -f1)
+IP_ADDRESS=$(ip -j addr show eth0 | jq -r .[0].addr_info[0].local)
 
 #
 # Prepare CoreOS images.
@@ -142,7 +142,7 @@ cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.j
 /qemu-node-setup -node-ip=${IP_ADDRESS} -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
                  -ntp-servers=${NTP_SERVERS} -out="${raw_ignition_dir}/final.json"
 
-# rewrite traffic destination from container eth0 to the VM eth0 via tc
+# rewrite eth packet destination MAC address from container eth0 to the VM eth0 via tc
 tc qdisc add dev eth0 handle ffff: ingress
 tc filter add dev eth0 parent ffff: protocol all u32 match u32 0 0 action pedit ex munge eth dst set ${MAC_ADDRESS}
 
