@@ -122,6 +122,11 @@ fi
 # Extract ignition from mounted configmap into raw provision config.
 cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.json"
 
+# this is bad-hack for kubelet beging too carefull
+# when kubelet starts a pod it checks if the IP from CNI is somehow working and since we remove the IP from eth0 and set it on VM it will be unresponsive until the VM is fully booted, this causes issues on instalaltions with slow booting time as geckon/gorgoth
+# without this hack kubelet will be killing the pod undefinetly with 'PodSandboxChanged' event
+sleep 10s
+
 # Generate final ignition with static network configuration and hostname
 # Configuration tool: https://github.com/giantswarm/qemu-node-setup
 # Usage of ./qemu-node-setup:
@@ -137,7 +142,7 @@ cat "${CLOUD_CONFIG_PATH}" | base64 -d | gunzip > "${raw_ignition_dir}/${ROLE}.j
 #        Colon separated list of NTP servers.
 #  -out string
 #        Path to save resulting ignition config.
-sleep 30s
+sleep 10s
 
 /qemu-node-setup -node-ip=${IP_ADDRESS} -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
                  -ntp-servers=${NTP_SERVERS} -out="${raw_ignition_dir}/final.json"
