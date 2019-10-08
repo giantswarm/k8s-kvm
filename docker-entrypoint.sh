@@ -171,6 +171,7 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -device virtio-rng-pci \
   -serial stdio \
   -monitor unix:/qemu-monitor,server,nowait \
+  -cdrom /dev/null \
   -kernel $KERNEL \
   -initrd $INITRD \
   -append "console=ttyS0 root=/dev/disk/by-id/virtio-rootfs rootflags=rw coreos.first_boot=1"
