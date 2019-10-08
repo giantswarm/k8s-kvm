@@ -34,7 +34,6 @@ ROOTFS="/usr/code/rootfs/rootfs.img"
 DOCKERFS="/usr/code/rootfs/dockerfs.img"
 KUBELETFS="/usr/code/rootfs/kubeletfs.img"
 MAC_ADDRESS=$(printf 'DE:AD:BE:%02X:%02X:%02X\n' $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)))
-IP_ADDRESS=$(ip -j addr show eth0 | jq -r .[0].addr_info[0].local)
 
 #
 # Prepare CoreOS images.
@@ -142,7 +141,7 @@ sleep 10s
 #        Colon separated list of NTP servers.
 #  -out string
 #        Path to save resulting ignition config.
-/qemu-node-setup -node-ip=${IP_ADDRESS} -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
+/qemu-node-setup -node-ip=${MY_POD_IP} -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
                  -ntp-servers=${NTP_SERVERS} -out="${raw_ignition_dir}/final.json"
 
 # rewrite eth packet destination MAC address from container eth0 to the VM eth0 via tc

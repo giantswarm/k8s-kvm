@@ -5,6 +5,7 @@
 
 set -eu
 
+CONTAINER_IP="169.254.100.1"
 BR_INTERFACE="br-qemu"
 TAP_INTERFACE="tap0"
 ETH_INTERFACE="eth0"
@@ -21,3 +22,7 @@ brctl addif ${BR_INTERFACE} ${ETH_INTERFACE}
 ip link set ${TAP_INTERFACE} up
 ip link set ${BR_INTERFACE} up
 ip link set ${ETH_INTERFACE} up
+
+# set local ip to container so probes will work
+ip addr add ${CONTAINER_IP}/32 dev ${ETH_INTERFACE}
+ip r add ${MY_POD_IP}/32 dev ${BR_INTERFACE}
