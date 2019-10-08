@@ -141,11 +141,15 @@ sleep 10s
 #        Colon separated list of NTP servers.
 #  -out string
 #        Path to save resulting ignition config.
-/qemu-node-setup -node-ip=${MY_POD_IP} -dns-servers=${DNS_SERVERS} -hostname=${HOSTNAME} -main-config="${raw_ignition_dir}/${ROLE}.json" \
-                 -ntp-servers=${NTP_SERVERS} -out="${raw_ignition_dir}/final.json"
+/qemu-node-setup -node-ip="${MY_POD_IP}" \
+		-dns-servers="${DNS_SERVERS}" \
+		-hostname="${HOSTNAME}" \
+		-main-config="${raw_ignition_dir}/${ROLE}.json" \
+		-ntp-servers="${NTP_SERVERS}" \
+		-out="${raw_ignition_dir}/final.json"
 
 # rewrite eth packet destination MAC address from container eth0 to the VM eth0 via tc
-tc qdisc del dev eth0 || echo "tc qdisc clear"
+tc qdisc del dev eth0 handle ffff: || echo "tc qdisc clear"
 tc qdisc add dev eth0 handle ffff: ingress
 tc filter add dev eth0 parent ffff: protocol all u32 match u32 0 0 action pedit ex munge eth dst set ${MAC_ADDRESS}
 
