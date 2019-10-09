@@ -102,7 +102,15 @@ mkfs.xfs ${KUBELETFS}
 ETCD_DATA_VOLUME_PATH=""
 
 if [ "$ROLE" = "master" ]; then
-  ETCD_DATA_VOLUME_PATH="-fsdev local,security_model=none,id=fsdev1,path=/etc/kubernetes/data/etcd/ -device virtio-9p-pci,id=fs1,fsdev=fsdev1,mount_tag=etcdshare"
+  ETCDFS="/etc/kubernetes/data/etcd/etcdfs.img"
+  #ETCD_DATA_VOLUME_PATH="-fsdev local,security_model=none,id=fsdev1,path=/etc/kubernetes/data/etcd/ -device virtio-9p-pci,id=fs1,fsdev=fsdev1,mount_tag=etcdshare"
+  if [ ! -f "${ETCDFS}" ]; then
+    truncate -s 5G ${ETCDFS}
+    mkfs.xfs ${ETCDFS}
+  fi
+  ETCD_DATA_VOLUME_PATH="-drive if=none,file=${ETCDFS},format=raw,discard=on,id=etcdfs \
+  -device virtio-blk-pci,drive=etcdfs,serial=etcdfs"
+
 fi
 
 # Pin the vm on a certain CPU. Make sure the variable is set and a CPU value is
