@@ -22,12 +22,12 @@ do
 done
 
 # Send graceful shutdown command to qemu monitor.
-echo system_powerdown | socat - UNIX-CONNECT:/qemu-monitor
+echo system_powerdown | socat - UNIX-CONNECT:/qemu-monitor 2>/dev/null >/dev/null
 
 # Wait while VM shutting down (socket exists) and then return.
 while [ -S /qemu-monitor ]
 do
-  sleep 0.1
+  sleep 0.000001s
 done
 
 exit 0
