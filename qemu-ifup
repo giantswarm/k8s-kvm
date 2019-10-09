@@ -10,6 +10,12 @@ BR_INTERFACE="br-qemu"
 TAP_INTERFACE="tap0"
 ETH_INTERFACE="eth0"
 
+# delete bridge if it already exists, this can happen when container is restarted
+if [ -d "/sys/class/net/${BR_INTERFACE}" ]; then
+        ip link set ${BR_INTERFACE} down
+        brctl delbr ${BR_INTERFACE}
+fi
+
 # create bridge
 brctl addbr ${BR_INTERFACE}
 
