@@ -13,7 +13,6 @@ RUN dnf -y update && \
         qemu-system-x86 \
         socat \
         xfsprogs \
-        jq \
     && dnf clean all
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
