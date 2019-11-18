@@ -66,16 +66,16 @@ MAC_ADDRESS=$(printf 'DE:AD:BE:%02X:%02X:%02X\n' $((RANDOM % 256)) $((RANDOM % 2
 #
 
 IMGDIR="/usr/code/images/v2"
-KERNEL="${IMGDIR}/coreos_production_pxe.vmlinuz"
-INITRD="${IMGDIR}/coreos_production_pxe_image.cpio.gz"
+KERNEL="${IMGDIR}/flatcar_production_pxe.vmlinuz"
+INITRD="${IMGDIR}/flatcar_production_pxe_image.cpio.gz"
 
 mkdir -p ${IMGDIR}
 
 # Use specific CoreOS version, if ${COREOS_VERSION} is set and not empty.
 # Check if images already in place, if not download them.
 if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
-  KERNEL="${IMGDIR}/${COREOS_VERSION}/coreos_production_pxe.vmlinuz"
-  INITRD="${IMGDIR}/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz"
+  KERNEL="${IMGDIR}/${COREOS_VERSION}/flatcar_production_pxe.vmlinuz"
+  INITRD="${IMGDIR}/${COREOS_VERSION}/flatcar_production_pxe_image.cpio.gz"
 
   # Download if does not exist.
   if [ ! -f "${IMGDIR}/${COREOS_VERSION}/done.lock" ]; then
@@ -85,14 +85,14 @@ if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
     mkdir -p ${IMGDIR}/${COREOS_VERSION}; cd ${IMGDIR}/${COREOS_VERSION}
 
     # Download images.
-    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/2219.99.1/flatcar_production_pxe.vmlinuz
-    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/2219.99.1/flatcar_production_pxe_image.cpio.gz
+    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/${COREOS_VERSION}/flatcar_production_pxe.vmlinuz
+    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/${COREOS_VERSION}/flatcar_production_pxe_image.cpio.gz
 
     # Check the signatures after download.
     # XXX: Assume local storage is trusted, do not check everytime pod starts.
     curl --fail -s https://www.flatcar-linux.org/security/image-signing-key/Flatcar_Image_Signing_Key.asc | gpg --import -
-    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/2219.99.1/flatcar_production_pxe.vmlinuz.sig
-    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/2219.99.1/flatcar_production_pxe_image.cpio.gz.sig
+    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/${COREOS_VERSION}/flatcar_production_pxe.vmlinuz.sig
+    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/${COREOS_VERSION}/flatcar_production_pxe_image.cpio.gz.sig
     gpg --verify flatcar_production_pxe.vmlinuz.sig
     gpg --verify flatcar_production_pxe_image.cpio.gz.sig
 
