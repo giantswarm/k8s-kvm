@@ -85,20 +85,20 @@ if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
     mkdir -p ${IMGDIR}/${COREOS_VERSION}; cd ${IMGDIR}/${COREOS_VERSION}
 
     # Download images.
-    curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe.vmlinuz
-    curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz
+    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/2219.99.1/flatcar_production_pxe.vmlinuz
+    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/2219.99.1/flatcar_production_pxe_image.cpio.gz
 
     # Check the signatures after download.
     # XXX: Assume local storage is trusted, do not check everytime pod starts.
-    curl --fail -s https://coreos.com/security/image-signing-key/CoreOS_Image_Signing_Key.asc | gpg --import -
-    curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe.vmlinuz.sig
-    curl --fail -O http://stable.release.core-os.net/amd64-usr/${COREOS_VERSION}/coreos_production_pxe_image.cpio.gz.sig
-    gpg --verify coreos_production_pxe.vmlinuz.sig
-    gpg --verify coreos_production_pxe_image.cpio.gz.sig
+    curl --fail -s https://www.flatcar-linux.org/security/image-signing-key/Flatcar_Image_Signing_Key.asc | gpg --import -
+    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/2219.99.1/flatcar_production_pxe.vmlinuz.sig
+    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/2219.99.1/flatcar_production_pxe_image.cpio.gz.sig
+    gpg --verify flatcar_production_pxe.vmlinuz.sig
+    gpg --verify flatcar_production_pxe_image.cpio.gz.sig
 
     # Do cleanup.
-    rm -f coreos_production_pxe.vmlinuz.sig
-    rm -f coreos_production_pxe_image.cpio.gz.sig
+    rm -f flatcar_production_pxe.vmlinuz.sig
+    rm -f flatcar_production_pxe_image.cpio.gz.sig
 
     # Create lock.
     touch done.lock; cd -
