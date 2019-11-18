@@ -176,7 +176,7 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -enable-kvm \
   -device virtio-net-pci,netdev=${NETWORK_TAP_NAME},mac=${MAC_ADDRESS} \
   -netdev tap,id=${NETWORK_TAP_NAME},ifname=${NETWORK_TAP_NAME},downscript=no \
-  -fw_cfg name=opt/com.coreos/config,file=${raw_ignition_dir}/final.json \
+  -fw_cfg name=opt/org.flatcar-linux/config,file=${raw_ignition_dir}/final.json \
   -drive if=none,file=${ROOTFS},format=raw,discard=on,id=rootfs \
   -device virtio-blk-pci,drive=rootfs,serial=rootfs \
   -drive if=none,file=${DOCKERFS},format=raw,discard=on,id=dockerfs \
@@ -190,4 +190,4 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -monitor unix:/qemu-monitor,server,nowait \
   -kernel $KERNEL \
   -initrd $INITRD \
-  -append "console=ttyS0 root=/dev/disk/by-id/virtio-rootfs rootflags=rw coreos.first_boot=1"
+  -append "console=ttyS0 root=/dev/disk/by-id/virtio-rootfs rootflags=rw flatcar.first_boot=1"
