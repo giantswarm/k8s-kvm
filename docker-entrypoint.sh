@@ -15,6 +15,7 @@
 #     ${ROLE}                   e.g. "master" or "worker"
 #     ${CLOUD_CONFIG_PATH}      e.g. "/cloudconfig/user_data"
 #     ${COREOS_VERSION}         e.g. "1409.7.0"
+#     ${FLATCAR_LINUX}          e.g. "0" or "1"
 
 set -eu
 
@@ -66,17 +67,21 @@ MAC_ADDRESS=$(printf 'DE:AD:BE:%02X:%02X:%02X\n' $((RANDOM % 256)) $((RANDOM % 2
 #
 
 IMGDIR="/usr/code/images/v2"
-KERNEL="${IMGDIR}/flatcar_production_pxe.vmlinuz"
-INITRD="${IMGDIR}/flatcar_production_pxe_image.cpio.gz"
+KERNEL="coreos_production_pxe.vmlinuz"
+INITRD="coreos_production_pxe_image.cpio.gz"
+FIRST_BOOT_FLAG="coreos.first_boot"
+
+if [ "$FLATCAR_LINUX" = "1" ]; then
+  KERNEL="flatcar_production_pxe.vmlinuz"
+  INITRD="flatcar_production_pxe_image.cpio.gz"
+  FIRST_BOOT_FLAG="flatcar.first_boot"
+fi
 
 mkdir -p ${IMGDIR}
 
 # Use specific CoreOS version, if ${COREOS_VERSION} is set and not empty.
 # Check if images already in place, if not download them.
 if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
-  KERNEL="${IMGDIR}/${COREOS_VERSION}/flatcar_production_pxe.vmlinuz"
-  INITRD="${IMGDIR}/${COREOS_VERSION}/flatcar_production_pxe_image.cpio.gz"
-
   # Download if does not exist.
   if [ ! -f "${IMGDIR}/${COREOS_VERSION}/done.lock" ]; then
 
@@ -85,29 +90,34 @@ if [ ! -z ${COREOS_VERSION+x} ] && [ ! -z "${COREOS_VERSION}" ]; then
     mkdir -p ${IMGDIR}/${COREOS_VERSION}; cd ${IMGDIR}/${COREOS_VERSION}
 
     # Download images.
-    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/${COREOS_VERSION}/flatcar_production_pxe.vmlinuz
-    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/${COREOS_VERSION}/flatcar_production_pxe_image.cpio.gz
+    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/${COREOS_VERSION}/${KERNEL}
+    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/${COREOS_VERSION}/${INITRD}
 
     # Check the signatures after download.
     # XXX: Assume local storage is trusted, do not check everytime pod starts.
     curl --fail -s https://www.flatcar-linux.org/security/image-signing-key/Flatcar_Image_Signing_Key.asc | gpg --import -
-    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/${COREOS_VERSION}/flatcar_production_pxe.vmlinuz.sig
-    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/${COREOS_VERSION}/flatcar_production_pxe_image.cpio.gz.sig
-    gpg --verify flatcar_production_pxe.vmlinuz.sig
-    gpg --verify flatcar_production_pxe_image.cpio.gz.sig
+    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/${COREOS_VERSION}/${KERNEL}
+    curl --fail -O https://edge.release.flatcar-linux.net/amd64-usr/${COREOS_VERSION}/${INITRD}
+    gpg --verify ${KERNEL}.sig
+    gpg --verify ${INITRD}.sig
 
     # Do cleanup.
-    rm -f flatcar_production_pxe.vmlinuz.sig
-    rm -f flatcar_production_pxe_image.cpio.gz.sig
+    rm -f ${KERNEL}.sig
+    rm -f ${INITRD}.sig
 
     # Create lock.
     touch done.lock; cd -
   fi
+
+  KERNEL="${COREOS_VERSION}/${KERNEL}"
+  INITRD="${COREOS_VERSION}/${INITRD}"
 else
 	echo "ERROR: COREOS_VERSION env not set."
 	exit 1
 fi
 
+KERNEL="${IMGDIR}/${KERNEL}"
+INITRD="${IMGDIR}/${INITRD}"
 
 #
 # Prepare root FS.
@@ -190,4 +200,4 @@ exec $TASKSET /usr/bin/qemu-system-x86_64 \
   -monitor unix:/qemu-monitor,server,nowait \
   -kernel $KERNEL \
   -initrd $INITRD \
-  -append "console=ttyS0 root=/dev/disk/by-id/virtio-rootfs rootflags=rw flatcar.first_boot=1"
+  -append "console=ttyS0 root=/dev/disk/by-id/virtio-rootfs rootflags=rw ${FIRST_BOOT_FLAG}=1"
