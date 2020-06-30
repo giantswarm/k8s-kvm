@@ -15,13 +15,3 @@ workflows:
           filters:
             tags:
               only: /^v.*/
-
-      - architect/push-to-docker:
-          context: architect
-          name: push-to-aliyun
-          image: "registry-intl.cn-shanghai.aliyuncs.com/giantswarm/k8s-kvm"
-          username_envar: "ALIYUN_USERNAME"
-          password_envar: "ALIYUN_PASSWORD"
-          filters:
-            tags:
-              ignore: /^v.*/
