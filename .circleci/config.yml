@@ -1,18 +1,27 @@
-version: 2
-jobs:
+version: 2.1
+
+orbs:
+  architect: giantswarm/architect@0.9.0
+
+workflows:
   build:
-    machine: true
-    steps:
-      - checkout
-      - run:
-          command: |
-            wget -q $(curl -sS -H "Authorization: token $RELEASE_TOKEN" https://api.github.com/repos/giantswarm/architect/releases/tags/v1.0.0 | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
-            chmod +x ./architect
-            ./architect version
-      - run:
-          command: ./architect build
-      - deploy:
-          command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              ./architect deploy
-            fi
+    jobs:
+      - architect/push-to-docker:
+          context: architect
+          name: push-to-quay
+          image: "quay.io/giantswarm/k8s-kvm"
+          username_envar: "QUAY_USERNAME"
+          password_envar: "QUAY_PASSWORD"
+          filters:
+            tags:
+              only: /^v.*/
+
+      - architect/push-to-docker:
+          context: architect
+          name: push-to-aliyun
+          image: "registry-intl.cn-shanghai.aliyuncs.com/giantswarm/k8s-kvm"
+          username_envar: "ALIYUN_USERNAME"
+          password_envar: "ALIYUN_PASSWORD"
+          filters:
+            tags:
+              ignore: /^v.*/
