@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Switch from Fedora 32 to Fedora 33 (qemu 3.0.0 -> 4.0.0).
+
+### Changed
+
 - Use `architect-orb` `v0.9.0`.
 
 [Unreleased]: https://github.com/giantswarm/k8s-kvm/compare/v0.1.0...HEAD
