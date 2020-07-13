@@ -180,6 +180,7 @@ eval exec "$TASKSET" /usr/bin/qemu-system-x86_64 \
   -smp "$CORES" \
   -m "$MEMORY" \
   -enable-kvm \
+  -d \
   -device virtio-net-pci,netdev="$NETWORK_TAP_NAME",mac="$MAC_ADDRESS" \
   -netdev tap,id="$NETWORK_TAP_NAME",ifname="$NETWORK_TAP_NAME",downscript=no \
   -fw_cfg name=opt/org.flatcar-linux/config,file="$RAW_IGNITION_DIR"/final.json \
