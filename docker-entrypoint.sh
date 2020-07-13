@@ -180,7 +180,7 @@ eval exec "$TASKSET" /usr/bin/qemu-system-x86_64 \
   -smp "$CORES" \
   -m "$MEMORY" \
   -enable-kvm \
-  -d guest_errors,unimp,cpu_reset,exec,cpu \
+  -d guest_errors,unimp,cpu_reset \
   -D "/tmp/qemu.log" \
   -device virtio-net-pci,netdev="$NETWORK_TAP_NAME",mac="$MAC_ADDRESS" \
   -netdev tap,id="$NETWORK_TAP_NAME",ifname="$NETWORK_TAP_NAME",downscript=no \
