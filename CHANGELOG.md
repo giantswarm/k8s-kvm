@@ -9,17 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Switch from Fedora 32 to Fedora 33 (qemu 4.2.0 -> 5.0.0).
+
 ## [0.2.0] - 2020-07-01
+
+### Changed
+
+- Switch from Fedora 29 to Fedora 32 (qemu 3.0.0 -> 4.2.0).
 
 ## [0.1.0] - 2020-06-30
 
 ### Added
 
 - Add github workflows.
-
-### Changed
-
-- Switch from Fedora 32 to Fedora 33 (qemu 3.0.0 -> 4.0.0).
 
 ### Changed
 
