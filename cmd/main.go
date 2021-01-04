@@ -18,7 +18,11 @@ limitations under the License.
 package main
 
 import (
+	"compress/gzip"
+	"encoding/base64"
 	"flag"
+	"fmt"
+	"io"
 	"os"
 	"strconv"
 
@@ -99,6 +103,28 @@ func main() {
 	// create Guest
 	guest := api.Guest{Name: options.guestName, CPUs: options.guestCPUs, Memory: options.guestMemory}
 
+	if options.flatcarIgnitionConfig != "" {
+		ignitionBase64Reader, err := os.Open(options.flatcarIgnitionConfig)
+		if err != nil {
+			log.Fatalf("failed to open base64-encoded ignition: %v", err)
+		}
+		ignitionCompressedReader := base64.NewDecoder(base64.StdEncoding, ignitionBase64Reader)
+		ignitionUncompressedReader, err := gzip.NewReader(ignitionCompressedReader)
+		if err != nil {
+			log.Fatalf("failed to unzip ignition: %v", err)
+		}
+		outputFile := fmt.Sprintf("%s.dec", options.flatcarIgnitionConfig)
+		ignitionWriter, err := os.OpenFile(outputFile, os.O_CREATE | os.O_TRUNC | os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatalf("failed to open ignition output file %s for writing: %v", outputFile, err)
+		}
+		_, err = io.Copy(ignitionWriter, ignitionUncompressedReader)
+		if err != nil {
+			log.Fatalf("failed to write ignition output file: %v", err)
+		}
+		guest.OS.IgnitionConfig = outputFile
+	}
+
 	kernel, initrd, err := distro.DownloadImages(options.flatcarChannel, options.flatcarVersion, options.sanityChecks)
 	if err != nil {
 		log.Fatalf("An error occurred during the download of Flatcar %s %s images: %v", options.flatcarChannel, options.flatcarVersion, err)
@@ -107,10 +133,6 @@ func main() {
 	// set kernel and initrd downloaded
 	guest.OS.Kernel = kernel
 	guest.OS.Initrd = initrd
-
-	if options.flatcarIgnitionConfig != "" {
-		guest.OS.IgnitionConfig = options.flatcarIgnitionConfig
-	}
 
 	// Setup networking inside of the container, return the available interfaces
 	dhcpIfaces, err := network.SetupInterfaces()
