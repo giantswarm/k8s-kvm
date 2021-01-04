@@ -287,7 +287,7 @@ ImM5rbOC6ZJdwLUTAg==
 
 // Pull Flatcar images from the official Kinvolk repository, optionally verify files and return the image names
 func DownloadImages(channel, version string, sanityChecks bool) (string, string, error) {
-	vmlinuzPath := filepath.Join(appDataDirectory, "flatcar", "channel", "version", vmlinuz)
+	vmlinuzPath := filepath.Join(appDataDirectory, "flatcar", channel, version, vmlinuz)
 	vmlinuzExistsLocal := util.FileExists(vmlinuzPath)
 	if !vmlinuzExistsLocal {
 		var vmlinuzURL = assetURL(channel, version, vmlinuz)
@@ -301,7 +301,7 @@ func DownloadImages(channel, version string, sanityChecks bool) (string, string,
 		log.Infof("Image %s found in the local filesystem.", vmlinuz)
 	}
 
-	initrdPath := filepath.Join(appDataDirectory, "flatcar", "channel", "version", initrd)
+	initrdPath := filepath.Join(appDataDirectory, "flatcar", channel, version, initrd)
 	initrdExistsLocal := util.FileExists(initrdPath)
 	if !initrdExistsLocal {
 		var initrdURL = assetURL(channel, version, initrd)
@@ -333,7 +333,7 @@ func DownloadImages(channel, version string, sanityChecks bool) (string, string,
 }
 
 func downloadSignatures(channel, version string) error {
-	vmlinuzSignaturePath := filepath.Join(appDataDirectory, "flatcar", "channel", "version", vmlinuzSignature)
+	vmlinuzSignaturePath := filepath.Join(appDataDirectory, "flatcar", channel, version, vmlinuzSignature)
 	vmlinuzSignatureURL := assetURL(channel, version, vmlinuzSignature)
 
 	log.Infof("Downloading %s to %s", vmlinuzSignatureURL, vmlinuzSignature)
@@ -342,7 +342,7 @@ func downloadSignatures(channel, version string) error {
 		return fmt.Errorf("failed to download file from %s: %w", vmlinuzSignatureURL, err)
 	}
 
-	initrdSignaturePath := filepath.Join(appDataDirectory, "flatcar", "channel", "version", initrdSignature)
+	initrdSignaturePath := filepath.Join(appDataDirectory, "flatcar", channel, version, initrdSignature)
 	var initrdSignatureURL = assetURL(channel, version, initrdSignature)
 
 	log.Infof("Downloading %s to %s", initrdSignatureURL, initrdSignature)
