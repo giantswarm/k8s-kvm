@@ -20,6 +20,7 @@ package distro
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"path"
 	"path/filepath"
 
@@ -287,32 +288,38 @@ ImM5rbOC6ZJdwLUTAg==
 
 // Pull Flatcar images from the official Kinvolk repository, optionally verify files and return the image names
 func DownloadImages(channel, version string, sanityChecks bool) (string, string, error) {
-	vmlinuzPath := filepath.Join(appDataDirectory, "flatcar", channel, version, vmlinuz)
+	basePath := filepath.Join(appDataDirectory, "flatcar", channel, version)
+	err := os.MkdirAll(basePath, 0755)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to ensure base image directory %s exists %w", basePath, err)
+	}
+
+	vmlinuzPath := filepath.Join(basePath, vmlinuz)
 	vmlinuzExistsLocal := util.FileExists(vmlinuzPath)
 	if !vmlinuzExistsLocal {
 		var vmlinuzURL = assetURL(channel, version, vmlinuz)
 
-		log.Infof("Downloading %s to %s", vmlinuzURL, vmlinuz)
+		log.Infof("Downloading %s to %s", vmlinuzURL, vmlinuzPath)
 
 		if err := util.DownloadFile(vmlinuzPath, vmlinuzURL); err != nil {
 			return "", "", fmt.Errorf("failed to download file from %s: %w", vmlinuzURL, err)
 		}
 	} else {
-		log.Infof("Image %s found in the local filesystem.", vmlinuz)
+		log.Infof("Image %s found in the local filesystem.", vmlinuzPath)
 	}
 
-	initrdPath := filepath.Join(appDataDirectory, "flatcar", channel, version, initrd)
+	initrdPath := filepath.Join(basePath, initrd)
 	initrdExistsLocal := util.FileExists(initrdPath)
 	if !initrdExistsLocal {
 		var initrdURL = assetURL(channel, version, initrd)
 
-		log.Infof("Downloading %s to %s", initrdURL, initrd)
+		log.Infof("Downloading %s to %s", initrdURL, initrdPath)
 
 		if err := util.DownloadFile(initrdPath, initrdURL); err != nil {
 			return "", "", fmt.Errorf("failed to download file from %s: %w", initrdURL, err)
 		}
 	} else {
-		log.Infof("Image %s found in the local filesystem", initrd)
+		log.Infof("Image %s found in the local filesystem", initrdPath)
 	}
 
 	// download images and verify them only when they are downloaded from remote
@@ -333,7 +340,8 @@ func DownloadImages(channel, version string, sanityChecks bool) (string, string,
 }
 
 func downloadSignatures(channel, version string) error {
-	vmlinuzSignaturePath := filepath.Join(appDataDirectory, "flatcar", channel, version, vmlinuzSignature)
+	basePath := filepath.Join(appDataDirectory, "flatcar", channel, version)
+	vmlinuzSignaturePath := filepath.Join(basePath, vmlinuzSignature)
 	vmlinuzSignatureURL := assetURL(channel, version, vmlinuzSignature)
 
 	log.Infof("Downloading %s to %s", vmlinuzSignatureURL, vmlinuzSignature)
@@ -342,7 +350,7 @@ func downloadSignatures(channel, version string) error {
 		return fmt.Errorf("failed to download file from %s: %w", vmlinuzSignatureURL, err)
 	}
 
-	initrdSignaturePath := filepath.Join(appDataDirectory, "flatcar", channel, version, initrdSignature)
+	initrdSignaturePath := filepath.Join(basePath, initrdSignature)
 	var initrdSignatureURL = assetURL(channel, version, initrdSignature)
 
 	log.Infof("Downloading %s to %s", initrdSignatureURL, initrdSignature)
