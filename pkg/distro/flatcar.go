@@ -25,7 +25,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/mazzy89/containervmm/pkg/util"
+	"github.com/giantswarm/k8s-kvm/pkg/util"
 )
 
 const (

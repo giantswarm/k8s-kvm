@@ -33,9 +33,9 @@ import (
 
 	"github.com/kata-containers/govmm/qemu"
 
-	"github.com/mazzy89/containervmm/pkg/api"
-	"github.com/mazzy89/containervmm/pkg/logs"
-	"github.com/mazzy89/containervmm/pkg/util"
+	"github.com/giantswarm/k8s-kvm/pkg/api"
+	"github.com/giantswarm/k8s-kvm/pkg/logs"
+	"github.com/giantswarm/k8s-kvm/pkg/util"
 )
 
 const (

@@ -25,12 +25,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
-	"github.com/mazzy89/containervmm/pkg/api"
-	"github.com/mazzy89/containervmm/pkg/disk"
-	"github.com/mazzy89/containervmm/pkg/distro"
-	"github.com/mazzy89/containervmm/pkg/hypervisor"
-	"github.com/mazzy89/containervmm/pkg/logs"
-	"github.com/mazzy89/containervmm/pkg/network"
+	"github.com/giantswarm/k8s-kvm/pkg/api"
+	"github.com/giantswarm/k8s-kvm/pkg/disk"
+	"github.com/giantswarm/k8s-kvm/pkg/distro"
+	"github.com/giantswarm/k8s-kvm/pkg/hypervisor"
+	"github.com/giantswarm/k8s-kvm/pkg/logs"
+	"github.com/giantswarm/k8s-kvm/pkg/network"
 )
 
 // set log level

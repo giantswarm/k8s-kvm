@@ -17,7 +17,7 @@ limitations under the License.
 
 package network
 
-import "github.com/mazzy89/containervmm/pkg/api"
+import "github.com/giantswarm/k8s-kvm/pkg/api"
 
 func BindDHCPInterfaces(guest *api.Guest, dhcpIfaces []DHCPInterface) {
 	var nics []api.NetworkInterface

@@ -27,8 +27,8 @@ import (
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/mazzy89/containervmm/pkg/api"
-	"github.com/mazzy89/containervmm/pkg/util"
+	"github.com/giantswarm/k8s-kvm/pkg/api"
+	"github.com/giantswarm/k8s-kvm/pkg/util"
 )
 
 var leaseDuration, _ = time.ParseDuration("4294967295s") // Infinite lease time

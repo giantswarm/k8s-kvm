@@ -1,4 +1,4 @@
-module github.com/mazzy89/containervmm
+module github.com/giantswarm/k8s-kvm
 
 go 1.15
 
