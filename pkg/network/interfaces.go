@@ -28,8 +28,6 @@ import (
 // Array of container interfaces to ignore (not forward to vm)
 var ignoreInterfaces = map[string]struct{}{
 	"lo": {},
-	"tun0": {},
-	"tunl0": {},
 }
 
 func SetupInterfaces() ([]DHCPInterface, error) {

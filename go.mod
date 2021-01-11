@@ -6,7 +6,7 @@ replace github.com/vishvananda/netlink => github.com/twelho/netlink v1.1.1-agein
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
-	github.com/giantswarm/microerror v0.3.0
+	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/kata-containers/govmm v0.0.0-20201016132830-11b6ac380d2d
 	github.com/krolaw/dhcp4 v0.0.0-20190909130307-a50d88189771
 	github.com/miekg/dns v1.1.33
