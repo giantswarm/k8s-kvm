@@ -22,9 +22,12 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
+	"html/template"
 	"io"
 	"os"
+	"os/exec"
 	"strconv"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -114,7 +117,7 @@ func main() {
 			log.Fatalf("failed to unzip ignition: %v", err)
 		}
 		outputFile := fmt.Sprintf("%s.dec", options.flatcarIgnitionConfig)
-		ignitionWriter, err := os.OpenFile(outputFile, os.O_CREATE | os.O_TRUNC | os.O_WRONLY, 0644)
+		ignitionWriter, err := os.OpenFile(outputFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Fatalf("failed to open ignition output file %s for writing: %v", outputFile, err)
 		}
@@ -138,6 +141,34 @@ func main() {
 	dhcpIfaces, err := network.SetupInterfaces()
 	if err != nil {
 		log.Fatalf("An error occured during the the setup of the network: %v", err)
+	}
+
+	commands := []string{
+		"qdisc del dev {{ .Interface }} handle ffff: ingress",
+		"qdisc add dev {{ .Interface }} handle ffff: ingress",
+		"filter add dev {{ .Interface }} parent ffff: protocol all u32 match u32 0 0 action pedit ex munge eth dst set {{ .Address }}",
+	}
+	for _, command := range commands {
+		temp, err := template.New("args").Parse(command)
+		if err != nil {
+			log.Fatalf("create template failed for %s: %v", command, err)
+		}
+		var builder strings.Builder
+		err = temp.Execute(&builder, struct {
+			Interface string
+			Address   string
+		}{
+			Interface: "eth0",
+			Address:   dhcpIfaces[0].MACFilter,
+		})
+		if err != nil {
+			log.Fatalf("template command failed: %v", err)
+		}
+		cmd := exec.Command("tc", command)
+		err = cmd.Run()
+		if err != nil {
+			log.Fatalf("execute tc with args %s failed: %v", builder.String(), err)
+		}
 	}
 
 	// Serve DHCP requests for those interfaces
