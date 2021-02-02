@@ -55,6 +55,7 @@ echo "Found network bridge IP '${NETWORK_BRIDGE_IP}' for network bridge name '${
 # Enable the VM's network bridge.
 #
 
+mkdir -p /etc/qemu
 echo "allow ${NETWORK_BRIDGE_NAME}" >/etc/qemu/bridge.conf
 
 #
@@ -172,7 +173,7 @@ base64 <"${CLOUD_CONFIG_PATH}" -d | gunzip >"$RAW_IGNITION_DIR/${ROLE}.json"
   -ntp-servers="${NTP_SERVERS}" -out="$RAW_IGNITION_DIR/final.json"
 
 #added PMU off to `-cpu host,pmu=off` https://github.com/giantswarm/k8s-kvm/pull/14
-eval exec "$TASKSET" /usr/bin/qemu-system-x86_64 \
+eval exec "$TASKSET" /usr/local/bin/qemu-system-x86_64 \
   -name "$HOSTNAME" \
   -nographic \
   -machine type=q35,accel=kvm \
@@ -181,7 +182,7 @@ eval exec "$TASKSET" /usr/bin/qemu-system-x86_64 \
   -m "$MEMORY" \
   -enable-kvm \
   -device virtio-net-pci,netdev="$NETWORK_TAP_NAME",mac="$MAC_ADDRESS" \
-  -netdev tap,id="$NETWORK_TAP_NAME",ifname="$NETWORK_TAP_NAME",downscript=no \
+  -netdev tap,id="$NETWORK_TAP_NAME",ifname="$NETWORK_TAP_NAME",script=/etc/qemu-ifup,downscript=no \
   -fw_cfg name=opt/org.flatcar-linux/config,file="$RAW_IGNITION_DIR"/final.json \
   -drive if=none,file="$ROOTFS",format=raw,discard=on,id=rootfs \
   -device virtio-blk-pci,drive=rootfs,serial=rootfs \
