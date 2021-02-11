@@ -91,7 +91,7 @@ if [ ! -f "${IMGDIR}/${FLATCAR_VERSION}/done.lock" ]; then
 
   # Check the signatures after download.
   # XXX: Assume local storage is trusted, do not check everytime pod starts.
-  curl --fail -s https://www.flatcar-linux.org/security/image-signing-key/Flatcar_Image_Signing_Key.asc | gpg --import -
+  curl --fail -sL https://kinvolk.io/flatcar-container-linux/security/image-signing-key/Flatcar_Image_Signing_Key.asc | gpg --import -
   curl --fail -O https://"$FLATCAR_CHANNEL".release.flatcar-linux.net/amd64-usr/"$FLATCAR_VERSION"/$KERNEL.sig
   curl --fail -O https://"$FLATCAR_CHANNEL".release.flatcar-linux.net/amd64-usr/"$FLATCAR_VERSION"/$INITRD.sig
   gpg --verify ${KERNEL}.sig
