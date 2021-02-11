@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Change to new Flatcar GPG signing key and follow redirects.
+
 ## [0.4.0] - 2021-02-04
 
 ### Changed
