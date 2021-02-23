@@ -219,6 +219,8 @@ func kernel(guest api.Guest) (qemu.Kernel, error) {
 			rootDisk := []string{"root", diskSerial}
 
 			kp = append(kp, rootDisk)
+
+			break
 		}
 	}
 
@@ -237,7 +239,7 @@ func kernel(guest api.Guest) (qemu.Kernel, error) {
 
 func serializeKernelParams(params [][]string) string {
 	var paramsStr string
-	var lastElemIndex int = len(params) - 1
+	var lastElemIndex = len(params) - 1
 
 	for i, p := range params {
 		paramsStr += fmt.Sprintf("%s=%s", p[0], p[1])
@@ -251,6 +253,7 @@ func serializeKernelParams(params [][]string) string {
 
 func memory(guest api.Guest) qemu.Memory {
 	m := qemu.Memory{Size: guest.Memory}
+
 	return m
 }
 
@@ -307,6 +310,8 @@ func buildDevices(guest api.Guest) []qemu.Device {
 
 	// append all the block devices
 	devices = appendBlockDevices(devices, guest.Disks)
+	// append all the FS devices
+	devices = appendFSDevices(devices, guest.HostVolumes)
 
 	// append console device
 	devices = appendConsoleDevice(devices)
@@ -350,15 +355,17 @@ func buildNetworkDevice(guestNIC api.NetworkInterface) qemu.NetDevice {
 }
 
 func appendBlockDevices(devices []qemu.Device, guestDisks []api.Disk) []qemu.Device {
-	blkDevice := guestDisks[0]
+	for i := range guestDisks {
+		blkDevice := guestDisks[i]
 
-	device := buildRootBlockDevice(blkDevice)
-	devices = append(devices, device)
+		device := buildBlockDevice(blkDevice)
+		devices = append(devices, device)
+	}
 
 	return devices
 }
 
-func buildRootBlockDevice(disk api.Disk) qemu.BlockDevice {
+func buildBlockDevice(disk api.Disk) qemu.BlockDevice {
 	// we define here because in the lib is not defined
 	var RAW qemu.BlockDeviceFormat = "raw"
 
@@ -392,6 +399,32 @@ func appendConsoleDevice(devices []qemu.Device) []qemu.Device {
 	}
 
 	devices = append(devices, console)
+
+	return devices
+}
+
+func buildHostVolumeDevice(index int, hostVolume api.HostVolume) qemu.FSDevice {
+	id := fmt.Sprintf("fsdev%d", index)
+
+	fsdev := qemu.FSDevice{
+		Driver:        qemu.Virtio9P,
+		FSDriver:      qemu.Local,
+		ID:            id,
+		Path:          hostVolume.HostPath,
+		MountTag:      hostVolume.MountTag,
+		SecurityModel: qemu.None,
+	}
+
+	return fsdev
+}
+
+func appendFSDevices(devices []qemu.Device, guestHostVolumes []api.HostVolume) []qemu.Device {
+	for i := range guestHostVolumes {
+		fsDevice := guestHostVolumes[i]
+
+		device := buildHostVolumeDevice(i, fsDevice)
+		devices = append(devices, device)
+	}
 
 	return devices
 }

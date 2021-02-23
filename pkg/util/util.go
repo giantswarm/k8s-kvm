@@ -18,10 +18,13 @@ limitations under the License.
 package util
 
 import (
+	"compress/gzip"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
 	bar "github.com/schollz/progressbar/v3"
@@ -68,6 +71,7 @@ func VerifyFile(file, verifyKey string) error {
 
 	signatureName := file + ".sig"
 	signature, err := os.Open(signatureName)
+
 	if err != nil {
 		return err
 	}
@@ -89,4 +93,37 @@ func verifyGPG(signed, signature io.Reader, pubKey string) error {
 	}
 
 	return nil
+}
+
+func DecodeBase64ToFile(encoded, outputPath string) (string, error) {
+	base64File, err := os.Open(encoded)
+	if err != nil {
+		return "", fmt.Errorf("failed to open base64-encoded ignition: %w", err)
+	}
+
+	base64Reader := base64.NewDecoder(base64.StdEncoding, base64File)
+	gzipReader, err := gzip.NewReader(base64Reader)
+	if err != nil {
+		return "", fmt.Errorf("failed to unzip ignition: %w", err)
+	}
+
+	outputFile := path.Join(outputPath, "ignition.json")
+	ignitionWriter, err := os.OpenFile(outputFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		return "", fmt.Errorf("failed to open ignition output file %s for writing: %w", outputFile, err)
+	}
+
+	defer func() {
+		localErr := ignitionWriter.Close()
+		if localErr != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "failed to close ignition output file %s: %s", outputFile, err.Error())
+		}
+	}()
+
+	_, err = io.Copy(ignitionWriter, gzipReader)
+	if err != nil {
+		return "", fmt.Errorf("failed to write ignition output file: %w", err)
+	}
+
+	return outputFile, nil
 }

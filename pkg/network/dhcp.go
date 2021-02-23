@@ -26,9 +26,9 @@ import (
 	"github.com/krolaw/dhcp4/conn"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
 
 	"github.com/giantswarm/k8s-kvm/pkg/api"
-	"github.com/giantswarm/k8s-kvm/pkg/util"
 )
 
 var leaseDuration, _ = time.ParseDuration("4294967295s") // Infinite lease time
@@ -37,22 +37,18 @@ var leaseDuration, _ = time.ParseDuration("4294967295s") // Infinite lease time
 type DHCPInterface struct {
 	VMIPNet    *net.IPNet
 	GatewayIP  *net.IP
+	Routes     []netlink.Route
 	VMTAP      string
 	Bridge     string
 	Hostname   string
 	MACFilter  string
 	dnsServers []byte
+	ntpServers []byte
 }
 
-func StartDHCPServers(guest api.Guest, dhcpIfaces []DHCPInterface) error {
-	// Generate the MAC addresses for the VM's adapters
-	macAddresses := make([]string, 0, len(dhcpIfaces))
-	if err := util.NewMAC(&macAddresses); err != nil {
-		return fmt.Errorf("failed to generate MAC addresses: %v", err)
-	}
-
+func StartDHCPServers(guest api.Guest, dhcpIfaces []DHCPInterface, dnsServers []string, ntpServers []string) error {
 	// Fetch the DNS servers given to the container
-	clientConfig, err := dns.ClientConfigFromFile("/etc/resolv.conf")
+	containerConfig, err := dns.ClientConfigFromFile("/etc/resolv.conf")
 	if err != nil {
 		return fmt.Errorf("failed to get DNS configuration: %v", err)
 	}
@@ -63,11 +59,17 @@ func StartDHCPServers(guest api.Guest, dhcpIfaces []DHCPInterface) error {
 		// Set the VM hostname to the VM ID
 		dhcpIface.Hostname = guest.Name
 
-		// Set the MAC address filter for the DHCP server
-		dhcpIface.MACFilter = macAddresses[i]
+		if len(dnsServers) > 0 {
+			// add the DNS servers from the user input
+			dhcpIface.SetDNSServers(dnsServers)
+		} else {
+			// Add the DNS servers from the container
+			dhcpIface.SetDNSServers(containerConfig.Servers)
+		}
 
-		// Add the DNS servers from the container
-		dhcpIface.SetDNSServers(clientConfig.Servers)
+		if len(ntpServers) > 0 {
+			dhcpIface.SetNTPServers(ntpServers)
+		}
 
 		go func() {
 			log.Infof("Starting DHCP server for interface %q (%s)\n", dhcpIface.Bridge, dhcpIface.VMIPNet.IP)
@@ -103,6 +105,14 @@ func (i *DHCPInterface) ServeDHCP(p dhcp.Packet, msgType dhcp.MessageType, optio
 				dhcp.OptionHostName:         []byte(i.Hostname),
 			}
 
+			if netRoutes := formClasslessRoutes(&i.Routes); netRoutes != nil {
+				opts[dhcp.OptionClasslessRouteFormat] = netRoutes
+			}
+
+			if i.ntpServers != nil {
+				opts[dhcp.OptionNetworkTimeProtocolServers] = i.ntpServers
+			}
+
 			optSlice := opts.SelectOrderOrAll(options[dhcp.OptionParameterRequestList])
 
 			return dhcp.ReplyPacket(p, respMsg, *i.GatewayIP, i.VMIPNet.IP, leaseDuration, optSlice)
@@ -127,4 +137,75 @@ func (i *DHCPInterface) SetDNSServers(dns []string) {
 	for _, server := range dns {
 		i.dnsServers = append(i.dnsServers, []byte(net.ParseIP(server).To4())...)
 	}
+}
+
+// Parse the NTP servers for the DHCP server
+func (i *DHCPInterface) SetNTPServers(ntp []string) {
+	for _, server := range ntp {
+		i.ntpServers = append(i.ntpServers, []byte(net.ParseIP(server).To4())...)
+	}
+}
+
+func formClasslessRoutes(routes *[]netlink.Route) (formattedRoutes []byte) {
+	// See RFC4332 for additional information
+	// (https://tools.ietf.org/html/rfc3442)
+	// For example:
+	// 		routes:
+	//				10.0.0.0/8 ,  gateway: 10.1.2.3
+	//              192.168.1/24, gateway: 192.168.2.3
+	//		would result in the following structure:
+	//      []byte{8, 10, 10, 1, 2, 3, 24, 192, 168, 1, 192, 168, 2, 3}
+	if routes == nil {
+		return []byte{}
+	}
+
+	sortedRoutes := sortRoutes(*routes)
+	for _, route := range sortedRoutes {
+		if route.Dst == nil {
+			route.Dst = &net.IPNet{
+				IP:   net.IPv4(0, 0, 0, 0),
+				Mask: net.CIDRMask(0, 32),
+			}
+		}
+
+		ip := route.Dst.IP.To4()
+		width, _ := route.Dst.Mask.Size()
+		octets := 0
+		if width > 0 {
+			octets = (width-1)/8 + 1
+		}
+
+		newRoute := append([]byte{byte(width)}, ip[0:octets]...)
+		gateway := route.Gw.To4()
+		if gateway == nil {
+			gateway = []byte{0, 0, 0, 0}
+		}
+
+		newRoute = append(newRoute, gateway...)
+
+		formattedRoutes = append(formattedRoutes, newRoute...)
+	}
+
+	return
+}
+
+func sortRoutes(routes []netlink.Route) []netlink.Route {
+	// Default route must come last, otherwise it may not get applied
+	// because there is no route to its gateway yet
+	var sortedRoutes []netlink.Route
+	var defaultRoutes []netlink.Route
+
+	for _, route := range routes {
+		if route.Dst == nil {
+			defaultRoutes = append(defaultRoutes, route)
+			continue
+		}
+		sortedRoutes = append(sortedRoutes, route)
+	}
+
+	for _, defaultRoute := range defaultRoutes {
+		sortedRoutes = append(sortedRoutes, defaultRoute)
+	}
+
+	return sortedRoutes
 }

@@ -20,9 +20,7 @@ package distro
 import (
 	"fmt"
 	"net/url"
-	"os"
 	"path"
-	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
 
@@ -32,9 +30,6 @@ import (
 const (
 	// arch amd-64
 	archAMD64 = "amd64-usr"
-
-	// directories
-	appDataDirectory = "/var/lib/containervmm"
 
 	// kernel
 	vmlinuz          = "flatcar_production_pxe.vmlinuz"
@@ -288,38 +283,30 @@ ImM5rbOC6ZJdwLUTAg==
 
 // Pull Flatcar images from the official Kinvolk repository, optionally verify files and return the image names
 func DownloadImages(channel, version string, sanityChecks bool) (string, string, error) {
-	basePath := filepath.Join(appDataDirectory, "flatcar", channel, version)
-	err := os.MkdirAll(basePath, 0755)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to ensure base image directory %s exists %w", basePath, err)
-	}
-
-	vmlinuzPath := filepath.Join(basePath, vmlinuz)
-	vmlinuzExistsLocal := util.FileExists(vmlinuzPath)
+	vmlinuzExistsLocal := util.FileExists(vmlinuz)
 	if !vmlinuzExistsLocal {
-		var vmlinuzURL = assetURL(channel, version, vmlinuz)
+		vmlinuzURL := assetURL(channel, version, vmlinuz)
 
-		log.Infof("Downloading %s to %s", vmlinuzURL, vmlinuzPath)
+		log.Infof("Downloading %s to %s", vmlinuzURL, vmlinuz)
 
-		if err := util.DownloadFile(vmlinuzPath, vmlinuzURL); err != nil {
+		if err := util.DownloadFile(vmlinuz, vmlinuzURL); err != nil {
 			return "", "", fmt.Errorf("failed to download file from %s: %w", vmlinuzURL, err)
 		}
 	} else {
-		log.Infof("Image %s found in the local filesystem.", vmlinuzPath)
+		log.Infof("Image %s found in the local filesystem.", vmlinuz)
 	}
 
-	initrdPath := filepath.Join(basePath, initrd)
-	initrdExistsLocal := util.FileExists(initrdPath)
+	initrdExistsLocal := util.FileExists(initrd)
 	if !initrdExistsLocal {
-		var initrdURL = assetURL(channel, version, initrd)
+		initrdURL := assetURL(channel, version, initrd)
 
-		log.Infof("Downloading %s to %s", initrdURL, initrdPath)
+		log.Infof("Downloading %s to %s", initrdURL, initrd)
 
-		if err := util.DownloadFile(initrdPath, initrdURL); err != nil {
+		if err := util.DownloadFile(initrd, initrdURL); err != nil {
 			return "", "", fmt.Errorf("failed to download file from %s: %w", initrdURL, err)
 		}
 	} else {
-		log.Infof("Image %s found in the local filesystem", initrdPath)
+		log.Infof("Image %s found in the local filesystem", initrd)
 	}
 
 	// download images and verify them only when they are downloaded from remote
@@ -329,33 +316,30 @@ func DownloadImages(channel, version string, sanityChecks bool) (string, string,
 			return "", "", fmt.Errorf("failed to download signatures: %v", err)
 		}
 
-		if err := verifyImages(vmlinuzPath, initrdPath); err != nil {
+		if err := verifyImages(vmlinuz, initrd); err != nil {
 			return "", "", fmt.Errorf("failed to verify Flatcar images: %w", err)
 		}
 	} else {
 		log.Warningf("Skipping sanity checks.")
 	}
 
-	return vmlinuzPath, initrdPath, nil
+	return vmlinuz, initrd, nil
 }
 
 func downloadSignatures(channel, version string) error {
-	basePath := filepath.Join(appDataDirectory, "flatcar", channel, version)
-	vmlinuzSignaturePath := filepath.Join(basePath, vmlinuzSignature)
 	vmlinuzSignatureURL := assetURL(channel, version, vmlinuzSignature)
 
 	log.Infof("Downloading %s to %s", vmlinuzSignatureURL, vmlinuzSignature)
 
-	if err := util.DownloadFile(vmlinuzSignaturePath, vmlinuzSignatureURL); err != nil {
+	if err := util.DownloadFile(vmlinuzSignature, vmlinuzSignatureURL); err != nil {
 		return fmt.Errorf("failed to download file from %s: %w", vmlinuzSignatureURL, err)
 	}
 
-	initrdSignaturePath := filepath.Join(basePath, initrdSignature)
-	var initrdSignatureURL = assetURL(channel, version, initrdSignature)
+	initrdSignatureURL := assetURL(channel, version, initrdSignature)
 
 	log.Infof("Downloading %s to %s", initrdSignatureURL, initrdSignature)
 
-	if err := util.DownloadFile(initrdSignaturePath, initrdSignatureURL); err != nil {
+	if err := util.DownloadFile(initrdSignature, initrdSignatureURL); err != nil {
 		return fmt.Errorf("failed to download file from %s: %w", initrdSignature, err)
 	}
 

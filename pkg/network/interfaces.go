@@ -23,6 +23,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
+
+	"github.com/giantswarm/k8s-kvm/pkg/api"
+	"github.com/giantswarm/k8s-kvm/pkg/util"
 )
 
 // Array of container interfaces to ignore (not forward to vm)
@@ -30,8 +33,15 @@ var ignoreInterfaces = map[string]struct{}{
 	"lo": {},
 }
 
-func SetupInterfaces() ([]DHCPInterface, error) {
+func SetupInterfaces(guest *api.Guest) ([]DHCPInterface, error) {
 	var dhcpIfaces []DHCPInterface
+	var nics []api.NetworkInterface
+
+	netHandle, err := netlink.NewHandle()
+	if err != nil {
+		return nil, err
+	}
+	defer netHandle.Delete()
 
 	ifaces, err := net.Interfaces()
 	if err != nil || ifaces == nil || len(ifaces) == 0 {
@@ -46,7 +56,7 @@ func SetupInterfaces() ([]DHCPInterface, error) {
 		}
 
 		// Try to transfer the address from the container to the DHCP server
-		ipNet, gw, _, err := takeAddress(&iface)
+		ipNet, gw, routes, _, err := takeAddress(netHandle, &iface)
 		if err != nil {
 			// Log the problem, but don't quit the function here as there might be other good interfaces
 			log.Errorf("parsing interface %q failed: %w", iface.Name, err)
@@ -55,7 +65,7 @@ func SetupInterfaces() ([]DHCPInterface, error) {
 			continue
 		}
 
-		dhcpIface, err := bridge(&iface)
+		dhcpIface, err := bridge(netHandle, &iface)
 		if err != nil {
 			// Log the problem, but don't quit the function here as there might be other good interfaces
 			// Don't set shouldRetry here as there is no point really with retrying with this interface
@@ -67,8 +77,18 @@ func SetupInterfaces() ([]DHCPInterface, error) {
 
 		dhcpIface.VMIPNet = ipNet
 		dhcpIface.GatewayIP = gw
+		dhcpIface.Routes = routes
 
 		dhcpIfaces = append(dhcpIfaces, *dhcpIface)
+
+		// bind DHCP Network Interfaces to the Guest object
+		nics = append(nics, api.NetworkInterface{
+			GatewayIP:   gw,
+			InterfaceIP: &ipNet.IP,
+			Routes:      routes,
+			MacAddr:     dhcpIface.MACFilter,
+			TAP:         dhcpIface.VMTAP,
+		})
 
 		// This is an interface we care about
 		interfacesCount++
@@ -78,15 +98,17 @@ func SetupInterfaces() ([]DHCPInterface, error) {
 		return nil, fmt.Errorf("no active or valid interfaces available yet")
 	}
 
+	guest.NICs = nics
+
 	return dhcpIfaces, nil
 }
 
 // takeAddress removes the first address of an interface and returns it and the appropriate gateway
-func takeAddress(iface *net.Interface) (*net.IPNet, *net.IP, bool, error) {
+func takeAddress(netHandle *netlink.Handle, iface *net.Interface) (*net.IPNet, *net.IP, []netlink.Route, bool, error) {
 	addrs, err := iface.Addrs()
 	if err != nil || addrs == nil || len(addrs) == 0 {
 		// set the bool to true so the caller knows to retry
-		return nil, nil, true, fmt.Errorf("interface %q has no address", iface.Name)
+		return nil, nil, nil, true, fmt.Errorf("interface %q has no address", iface.Name)
 	}
 
 	for _, addr := range addrs {
@@ -111,15 +133,15 @@ func takeAddress(iface *net.Interface) (*net.IPNet, *net.IP, bool, error) {
 			continue
 		}
 
-		link, err := netlink.LinkByName(iface.Name)
+		link, err := netHandle.LinkByName(iface.Name)
 		if err != nil {
-			return nil, nil, false, fmt.Errorf("failed to get interface %q by name: %v", iface.Name, err)
+			return nil, nil, nil, false, fmt.Errorf("failed to get interface %q by name: %v", iface.Name, err)
 		}
 
 		var gw *net.IP
-		routes, err := netlink.RouteList(link, netlink.FAMILY_ALL)
+		routes, err := netHandle.RouteList(link, netlink.FAMILY_ALL)
 		if err != nil {
-			return nil, nil, false, fmt.Errorf("failed to get default gateway for interface %q: %v", iface.Name, err)
+			return nil, nil, nil, false, fmt.Errorf("failed to get default gateway for interface %q: %v", iface.Name, err)
 		}
 		for _, rt := range routes {
 			if rt.Gw != nil {
@@ -134,8 +156,8 @@ func takeAddress(iface *net.Interface) (*net.IPNet, *net.IP, bool, error) {
 				Mask: mask,
 			},
 		}
-		if err = netlink.AddrDel(link, delAddr); err != nil {
-			return nil, nil, false, fmt.Errorf("failed to remove address %q from interface %q: %v", delAddr, iface.Name, err)
+		if err = netHandle.AddrDel(link, delAddr); err != nil {
+			return nil, nil, nil, false, fmt.Errorf("failed to remove address %q from interface %q: %v", delAddr, iface.Name, err)
 		}
 
 		log.Infof("Moving IP address %s (%s) with gateway %s from container to guest", ip.String(), maskString(mask), gw.String())
@@ -143,55 +165,77 @@ func takeAddress(iface *net.Interface) (*net.IPNet, *net.IP, bool, error) {
 		return &net.IPNet{
 			IP:   ip,
 			Mask: mask,
-		}, gw, false, nil
+		}, gw, routes, false, nil
 	}
 
-	return nil, nil, false, fmt.Errorf("interface %s has no valid addresses", iface.Name)
+	return nil, nil, nil, false, fmt.Errorf("interface %s has no valid addresses", iface.Name)
 }
 
 // bridge creates the TAP device and performs the bridging, returning the base configuration for a DHCP server
-func bridge(iface *net.Interface) (*DHCPInterface, error) {
+func bridge(netHandle *netlink.Handle, iface *net.Interface) (*DHCPInterface, error) {
 	tapName := "tap-" + iface.Name
 	bridgeName := "br-" + iface.Name
 
-	eth, err := netlink.LinkByIndex(iface.Index)
+	eth, err := netHandle.LinkByIndex(iface.Index)
 	if err != nil {
 		return nil, err
 	}
 
-	tuntap, err := createTAPAdapter(tapName)
+	// Move the veth address to the TAP interface. This MAC address has to be
+	// the one inside the VM in order to avoid any firewall issues. The
+	// bridge created by the network plugin on the host actually expects
+	// to see traffic from this MAC address and not another one.
+	tapHardAddr := eth.Attrs().HardwareAddr
+
+	// Generate the MAC addresses for the VM's adapters
+	randomMacAddr, err := util.GenerateRandomPrivateMacAddr()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate MAC addresses: %v", err)
+	}
+
+	if err := netHandle.LinkSetHardwareAddr(eth, randomMacAddr); err != nil {
+		return nil, fmt.Errorf("failed to set MAC address %s for eth interface %s: %s",
+			randomMacAddr, eth.Attrs().Name, err)
+	}
+
+	tuntap, err := createTAPAdapter(netHandle, tapName, tapHardAddr)
 	if err != nil {
 		return nil, fmt.Errorf("creation tap interface %q failed: %w", tapName, err)
 	}
 
-	bridge, err := createBridge(bridgeName)
+	bridge, err := createBridge(netHandle, bridgeName)
 	if err != nil {
 		return nil, fmt.Errorf("creation bridge %q failed: %w", bridgeName, err)
 	}
 
-	if err := setMaster(bridge, tuntap, eth); err != nil {
+	if err := setMaster(netHandle, bridge, tuntap, eth); err != nil {
 		return nil, fmt.Errorf("failed to set master: %v", err)
 	}
 
 	return &DHCPInterface{
 		VMTAP:  tapName,
 		Bridge: bridgeName,
+		// Set the MAC address filter for the DHCP server
+		MACFilter: tapHardAddr.String(),
 	}, nil
 }
 
 // createTAPAdapter creates a new TAP device with the given name
-func createTAPAdapter(tapName string) (*netlink.Tuntap, error) {
+func createTAPAdapter(netHandle *netlink.Handle, tapName string, hardAddr net.HardwareAddr) (*netlink.Tuntap, error) {
 	la := netlink.NewLinkAttrs()
 	la.Name = tapName
+	la.HardwareAddr = hardAddr
+
 	tuntap := &netlink.Tuntap{
 		LinkAttrs: la,
 		Mode:      netlink.TUNTAP_MODE_TAP,
 	}
-	return tuntap, addLink(tuntap)
+
+	return tuntap, addLink(netHandle, tuntap)
 }
 
 // createBridge creates a new bridge device with the given name
-func createBridge(bridgeName string) (*netlink.Bridge, error) {
+func createBridge(netHandle *netlink.Handle, bridgeName string) (*netlink.Bridge, error) {
 	la := netlink.NewLinkAttrs()
 	la.Name = bridgeName
 
@@ -202,57 +246,27 @@ func createBridge(bridgeName string) (*netlink.Bridge, error) {
 	// taking any performance hit by disabling it here.
 	ageingTime := uint32(0)
 	bridge := &netlink.Bridge{LinkAttrs: la, AgeingTime: &ageingTime}
-	return bridge, addLink(bridge)
+	return bridge, addLink(netHandle, bridge)
 }
 
 // addLink creates the given link and brings it up
-func addLink(link netlink.Link) (err error) {
-	if err = netlink.LinkAdd(link); err == nil {
-		err = netlink.LinkSetUp(link)
+func addLink(netHandle *netlink.Handle, link netlink.Link) (err error) {
+	if err = netHandle.LinkAdd(link); err == nil {
+		err = netHandle.LinkSetUp(link)
 	}
 
 	return
 }
 
-// This is a MAC address persistence workaround, netlink.LinkSetMaster{,ByIndex}()
-// has a bug that arbitrarily changes the MAC addresses of the bridge and virtual
-// device to be bound to it. TODO: Remove when fixed upstream
-func setMaster(master netlink.Link, links ...netlink.Link) error {
+func setMaster(netHandle *netlink.Handle, master netlink.Link, links ...netlink.Link) error {
 	masterIndex := master.Attrs().Index
-	masterMAC, err := getMAC(master)
-	if err != nil {
-		return err
-	}
-
 	for _, link := range links {
-		mac, err := getMAC(link)
-		if err != nil {
-			return err
-		}
-
-		if err = netlink.LinkSetMasterByIndex(link, masterIndex); err != nil {
-			return err
-		}
-
-		if err = netlink.LinkSetHardwareAddr(link, mac); err != nil {
+		if err := netHandle.LinkSetMasterByIndex(link, masterIndex); err != nil {
 			return err
 		}
 	}
 
-	return netlink.LinkSetHardwareAddr(master, masterMAC)
-}
-
-// getMAC fetches the generated MAC address for the given link
-func getMAC(link netlink.Link) (addr net.HardwareAddr, err error) {
-	// The attributes of the netlink.Link passed to this function do not contain HardwareAddr
-	// as it is expected to be generated by the networking subsystem. Thus, "reload" the Link
-	// by querying it to retrieve the generated attributes after the link has been created.
-	if link, err = netlink.LinkByIndex(link.Attrs().Index); err != nil {
-		return
-	}
-
-	addr = link.Attrs().HardwareAddr
-	return
+	return nil
 }
 
 func maskString(mask net.IPMask) string {
