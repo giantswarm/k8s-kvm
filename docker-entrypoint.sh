@@ -197,4 +197,5 @@ eval exec "$TASKSET" /usr/local/bin/qemu-system-x86_64 \
   -monitor unix:/qemu-monitor,server,nowait \
   -kernel "$KERNEL" \
   -initrd "$INITRD" \
+  -trace "kvm_run_exit" \
   -append "\"console=ttyS0 root=/dev/disk/by-id/virtio-rootfs rootflags=rw flatcar.first_boot=1\""
