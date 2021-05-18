@@ -137,6 +137,8 @@ if [ "$ROLE" = "master" ]; then
   ETCD_DATA_VOLUME_PATH="-fsdev local,security_model=none,id=fsdev1,path=/etc/kubernetes/data/etcd/ -device virtio-9p-pci,id=fs1,fsdev=fsdev1,mount_tag=etcdshare"
 fi
 
+HOST_DATA_VOLUME_CONFIG=""
+
 if [ ! -n "$HOST_DATA_VOLUME_PATH" ]; then
   HOST_DATA_VOLUME_CONFIG="-fsdev local,security_model=none,id=fsdev2,path=$HOST_DATA_VOLUME_PATH -device virtio-9p-pci,id=fs2,fsdev=fsdev2,mount_tag=data"
 fi
