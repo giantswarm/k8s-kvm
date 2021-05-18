@@ -137,6 +137,10 @@ if [ "$ROLE" = "master" ]; then
   ETCD_DATA_VOLUME_PATH="-fsdev local,security_model=none,id=fsdev1,path=/etc/kubernetes/data/etcd/ -device virtio-9p-pci,id=fs1,fsdev=fsdev1,mount_tag=etcdshare"
 fi
 
+if [ ! -n "$HOST_DATA_VOLUME_PATH" ]; then
+  HOST_DATA_VOLUME_CONFIG="-fsdev local,security_model=none,id=fsdev2,path=$HOST_DATA_VOLUME_PATH -device virtio-9p-pci,id=fs2,fsdev=fsdev2,mount_tag=data"
+fi
+
 # Pin the vm on a certain CPU. Make sure the variable is set and a CPU value is
 # given.
 
@@ -191,6 +195,7 @@ eval exec "$TASKSET" /usr/local/bin/qemu-system-x86_64 \
   -drive if=none,file="$KUBELETFS",format=raw,discard=on,id=kubeletfs \
   -device virtio-blk-pci,drive=kubeletfs,serial=kubeletfs \
   "$ETCD_DATA_VOLUME_PATH" \
+  "$HOST_DATA_VOLUME_CONFIG" \
   -device sga \
   -device virtio-rng-pci \
   -serial stdio \
