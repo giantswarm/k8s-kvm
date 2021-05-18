@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added the possibility to share volumes between the host and the guest VM.
+
 ## [0.4.1] - 2021-02-16
 
 ### Fixed
