@@ -137,10 +137,23 @@ if [ "$ROLE" = "master" ]; then
   ETCD_DATA_VOLUME_PATH="-fsdev local,security_model=none,id=fsdev1,path=/etc/kubernetes/data/etcd/ -device virtio-9p-pci,id=fs1,fsdev=fsdev1,mount_tag=etcdshare"
 fi
 
+# Define the the mount tag and the  mount point in the host machine
+# These values will be defined in the kvm-operator during the bootstrap of the cluster
+#
+# i.e. HOST_DATA_VOLUME_PATHS=datashare1:/data1,datashare2:/data2
+#
 HOST_DATA_VOLUME_CONFIG=""
+IFS=','
 
-if [ ! -n "$HOST_DATA_VOLUME_PATH" ]; then
-  HOST_DATA_VOLUME_CONFIG="-fsdev local,security_model=none,id=fsdev2,path=$HOST_DATA_VOLUME_PATH -device virtio-9p-pci,id=fs2,fsdev=fsdev2,mount_tag=data"
+if [ -n "$HOST_DATA_VOLUME_PATHS" ]; then
+  read -a mountpoints <<< "$HOST_DATA_VOLUME_PATHS"
+
+  for idx in "${!mountpoints[@]}"; do
+    mount_tag=$(echo "${mountpoints[$idx]}" | cut -d ':' -f 1)
+    mount_path=$(echo "${mountpoints[$idx]}" | cut -d ':' -f 2)
+
+    HOST_DATA_VOLUME_CONFIG+="-fsdev local,security_model=none,id=fsdev$((idx+1)),path=${mount_path} -device virtio-9p-pci,id=$((idx+1)),fsdev=fsdev$((idx+1)),mount_tag=$mount_tag "
+  done
 fi
 
 # Pin the vm on a certain CPU. Make sure the variable is set and a CPU value is

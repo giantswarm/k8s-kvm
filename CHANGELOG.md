@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Support multiple volumes to share between the host and the guest QEMU VM.
+
 ## [0.5.0] - 2021-05-18
 
 ### Added
