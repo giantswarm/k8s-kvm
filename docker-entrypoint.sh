@@ -153,7 +153,7 @@ if [ "$ROLE" = "worker" ]; then
       mount_tag=$(echo "${mountpoints[$idx]}" | cut -d ':' -f 1)
       mount_path=$(echo "${mountpoints[$idx]}" | cut -d ':' -f 2)
 
-      HOST_DATA_VOLUME_CONFIG+="-fsdev local,security_model=none,id=fsdev$((idx+1)),path=${mount_path} -device virtio-9p-pci,id=$((idx+1)),fsdev=fsdev$((idx+1)),mount_tag=$mount_tag "
+      HOST_DATA_VOLUME_CONFIG+="-fsdev local,security_model=none,id=fsdev$((idx+1)),path=${mount_path} -device virtio-9p-pci,id=fs$((idx+1)),fsdev=fsdev$((idx+1)),mount_tag=$mount_tag "
     done
   fi
 fi
