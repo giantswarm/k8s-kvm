@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Add conditional clause to add host volume env var only for workers.
+
 ## [0.6.0] - 2021-05-19
 
 ### Changed
