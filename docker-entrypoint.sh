@@ -145,15 +145,17 @@ fi
 HOST_DATA_VOLUME_CONFIG=""
 IFS=','
 
-if [ -n "$HOST_DATA_VOLUME_PATHS" ]; then
-  read -a mountpoints <<< "$HOST_DATA_VOLUME_PATHS"
+if [ "$ROLE" = "worker" ]; then
+  if [ -n "$HOST_DATA_VOLUME_PATHS" ]; then
+    read -a mountpoints <<< "$HOST_DATA_VOLUME_PATHS"
 
-  for idx in "${!mountpoints[@]}"; do
-    mount_tag=$(echo "${mountpoints[$idx]}" | cut -d ':' -f 1)
-    mount_path=$(echo "${mountpoints[$idx]}" | cut -d ':' -f 2)
+    for idx in "${!mountpoints[@]}"; do
+      mount_tag=$(echo "${mountpoints[$idx]}" | cut -d ':' -f 1)
+      mount_path=$(echo "${mountpoints[$idx]}" | cut -d ':' -f 2)
 
-    HOST_DATA_VOLUME_CONFIG+="-fsdev local,security_model=none,id=fsdev$((idx+1)),path=${mount_path} -device virtio-9p-pci,id=$((idx+1)),fsdev=fsdev$((idx+1)),mount_tag=$mount_tag "
-  done
+      HOST_DATA_VOLUME_CONFIG+="-fsdev local,security_model=none,id=fsdev$((idx+1)),path=${mount_path} -device virtio-9p-pci,id=$((idx+1)),fsdev=fsdev$((idx+1)),mount_tag=$mount_tag "
+    done
+  fi
 fi
 
 # Pin the vm on a certain CPU. Make sure the variable is set and a CPU value is
