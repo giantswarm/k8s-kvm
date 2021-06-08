@@ -133,6 +133,7 @@ RUN dnf install -y $PACKAGES \
         --enable-fdt=system \
         --enable-slirp=system \
         --enable-capstone=system \
+        --extra-cflags="-fno-omit-frame-pointer" \
         --target-list="$QEMU_TARGET_LIST" || { cat config.log && exit 1; } \
     && make -j$(getconf _NPROCESSORS_ONLN) \
     && make install
