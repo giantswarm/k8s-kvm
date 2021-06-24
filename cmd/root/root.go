@@ -18,7 +18,14 @@ limitations under the License.
 package root
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/base64"
 	"fmt"
+	"io"
+	"log"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -30,7 +37,6 @@ import (
 	"github.com/giantswarm/k8s-kvm/pkg/distro"
 	"github.com/giantswarm/k8s-kvm/pkg/hypervisor"
 	"github.com/giantswarm/k8s-kvm/pkg/network"
-	"github.com/giantswarm/k8s-kvm/pkg/util"
 )
 
 const (
@@ -43,10 +49,11 @@ const (
 	cfgGuestDNSServers      = "guest-dns-servers"
 	cfgGuestNTPServers      = "guest-ntp-servers"
 
-	cfgFlatcarChannel      = "flatcar-channel"
-	cfgFlatcarVersion      = "flatcar-version"
-	cfgFlatcarIgnition     = "flatcar-ignition"
-	cfgFlatcarIgnitionPath = "flatcar-ignition-dir"
+	cfgFlatcarChannel        = "flatcar-channel"
+	cfgFlatcarVersion        = "flatcar-version"
+	cfgFlatcarIgnitionString = "flatcar-ignition-string"
+	cfgFlatcarIgnitionFile   = "flatcar-ignition-file"
+	cfgFlatcarIgnitionFormat = "flatcar-ignition-format"
 
 	cfgDebug        = "debug"
 	cfgSanityChecks = "sanity-checks"
@@ -96,17 +103,9 @@ var rootCmd = &cobra.Command{
 		guest.OS.Initrd = initrd
 
 		// set Ignition Config
-		// this expect the path where the plain-text Ignition file is stored
-		b64Ignition := c.GetString(cfgFlatcarIgnition)
-		dirIgnition := c.GetString(cfgFlatcarIgnitionPath)
-
-		if b64Ignition != "" {
-			absIgnitionPath, err := util.DecodeBase64ToFile(b64Ignition, dirIgnition)
-			if err != nil {
-				return fmt.Errorf("an error occured during the decoding of Ignition config")
-			}
-
-			guest.OS.IgnitionConfig = absIgnitionPath
+		guest.OS.IgnitionConfig, err = parseIgnitionConfig()
+		if err != nil {
+			return fmt.Errorf("an error occured when writing ignition: %w", err)
 		}
 
 		// Setup networking inside of the container, return the available interfaces
@@ -186,8 +185,9 @@ func init() {
 
 	configStringVar(flags, cfgFlatcarChannel, "stable", "flatcar channel (i.e. stable, beta, alpha)")
 	configStringVar(flags, cfgFlatcarVersion, "", "flatcar version")
-	configStringVar(flags, cfgFlatcarIgnition, "", "base64-encoded Ignition Config")
-	configStringVar(flags, cfgFlatcarIgnitionPath, "/", "dir path of the Ignition config")
+	configStringVar(flags, cfgFlatcarIgnitionString, "", "optional content of ignition, format specified by --flatcar-ignition-format")
+	configStringVar(flags, cfgFlatcarIgnitionFile, "", "optional path to file containing ignition, format specified by --flatcar-ignition-format")
+	configStringVar(flags, cfgFlatcarIgnitionFormat, "", "format of ignition passed via --flatcar-ignition-string or --flatcar-ignition-file, can be 'base64', 'base64-compressed', 'compressed', or empty for plaintext (default)")
 
 	configBoolVar(flags, cfgSanityChecks, true, "run sanity checks (GPG verification of images)")
 	configBoolVar(flags, cfgDebug, false, "enable debug")
@@ -205,4 +205,78 @@ func parseStringSliceFlag(input string) (string, string) {
 	s := strings.Split(input, ":")
 
 	return s[0], s[1]
+}
+
+func parseIgnitionConfig() (string, error) {
+	var err error
+	var ignitionData []byte
+
+	// Load ignition data based on flags
+	if ignitionPath := c.GetString(cfgFlatcarIgnitionFile); ignitionPath != "" {
+		ignitionData, err = os.ReadFile(ignitionPath)
+		if err != nil {
+			return "", fmt.Errorf("read ignition file failed: %w", err)
+		}
+	} else if ignitionString := c.GetString(cfgFlatcarIgnitionString); ignitionString != "" {
+		ignitionData = []byte(ignitionString)
+	}
+
+	// Decode data according to format flag
+	if ignitionData == nil {
+		return "", nil
+	}
+
+	var base64Encoded bool
+	var compressed bool
+
+	switch c.GetString(cfgFlatcarIgnitionFormat) {
+	case "base64":
+		base64Encoded = true
+	case "base64-compressed":
+		base64Encoded = true
+		compressed = true
+	case "compressed":
+		compressed = true
+	default:
+		// assume plaintext
+	}
+
+	if base64Encoded {
+		decodedLen := base64.StdEncoding.DecodedLen(len(ignitionData))
+		decoded := make([]byte, decodedLen)
+		_, err = base64.StdEncoding.Decode(decoded, ignitionData)
+		if err != nil {
+			return "", fmt.Errorf("decoding ignition as base64 failed: %w", err)
+		}
+
+		ignitionData = decoded
+	}
+
+	if compressed {
+		byteReader := bytes.NewReader(ignitionData)
+		zippedReader, err := gzip.NewReader(byteReader)
+		if err != nil {
+			return "", fmt.Errorf("creating gzip ignition reader failed: %w", err)
+		}
+		defer func(zippedReader *gzip.Reader) {
+			err := zippedReader.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}(zippedReader)
+
+		ignitionData, err = io.ReadAll(zippedReader)
+		if err != nil {
+			return "", fmt.Errorf("decompressing ignition failed: %w", err)
+		}
+	}
+
+	// Write result to file
+	ignitionPath := filepath.Join(os.TempDir(), "ignition.json")
+	err = os.WriteFile(ignitionPath, ignitionData, 0644)
+	if err != nil {
+		return "", fmt.Errorf("writing final ignition to temporary directory failed: %w", err)
+	}
+
+	return ignitionPath, nil
 }
