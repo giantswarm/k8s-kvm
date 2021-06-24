@@ -225,8 +225,6 @@ func parseIgnitionConfig() (string, error) {
 	if ignitionData == nil {
 		fmt.Println("no ignition found")
 		return "", nil
-	} else {
-		fmt.Println("read ignition", len(ignitionData))
 	}
 
 	var base64Encoded bool
@@ -245,7 +243,6 @@ func parseIgnitionConfig() (string, error) {
 	}
 
 	if base64Encoded {
-		fmt.Println("decoding base64 ignition", len(ignitionData))
 		ignitionData, err = base64.StdEncoding.DecodeString(string(ignitionData))
 		if err != nil {
 			return "", fmt.Errorf("decoding ignition as base64 failed: %w", err)
@@ -253,7 +250,6 @@ func parseIgnitionConfig() (string, error) {
 	}
 
 	if compressed {
-		fmt.Println("unzipping ignition", len(ignitionData))
 		byteReader := bytes.NewReader(ignitionData)
 		zippedReader, err := gzip.NewReader(byteReader)
 		if err != nil {
