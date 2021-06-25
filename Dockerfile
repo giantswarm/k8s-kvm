@@ -10,6 +10,7 @@ COPY go.sum .
 RUN go mod download
 
 COPY . .
+COPY qemu-shutdown ./bin/
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./bin/containervmm ./cmd/main.go \
     && chmod +x ./bin/containervmm
