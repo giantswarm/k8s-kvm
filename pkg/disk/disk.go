@@ -77,7 +77,7 @@ func createDiskFile(filename string, size string) error {
 		return fmt.Errorf("failed to format the disk size: %v", err)
 	}
 
-	file, err := os.OpenFile(filename, os.O_CREATE, 0644)
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %v", filename, err)
 	}
