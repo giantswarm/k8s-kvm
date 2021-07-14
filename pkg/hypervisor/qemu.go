@@ -310,6 +310,7 @@ func buildDevices(guest api.Guest) []qemu.Device {
 
 	// append all the block devices
 	devices = appendBlockDevices(devices, guest.Disks)
+
 	// append all the FS devices
 	devices = appendFSDevices(devices, guest.HostVolumes)
 
