@@ -116,22 +116,6 @@ var rootCmd = &cobra.Command{
 			guest.OS.IgnitionConfig = ignitionPath
 		}
 
-		// Setup networking inside of the container, return the available interfaces
-		dhcpIfaces, err := network.SetupInterfaces(&guest)
-		if err != nil {
-			return fmt.Errorf("an error occured during the the setup of the network: %v", err)
-		}
-
-		// Serve DHCP requests for those interfaces
-		// The function returns the available IP addresses that are being
-		// served over DHCP now
-		dnsServers := c.GetStringSlice(cfgGuestDNSServers)
-		ntpServers := c.GetStringSlice(cfgGuestNTPServers)
-
-		if err = network.StartDHCPServers(guest, dhcpIfaces, dnsServers, ntpServers); err != nil {
-			return fmt.Errorf("an error occured during the start of the DHCP servers: %v", err)
-		}
-
 		// create rootfs and other additional volumes
 		guest.Disks = append(guest.Disks, api.Disk{
 			ID:     "rootfs",
@@ -160,6 +144,22 @@ var rootCmd = &cobra.Command{
 				MountTag: mountTag,
 				HostPath: hostPath,
 			})
+		}
+
+		// Setup networking inside of the container, return the available interfaces
+		dhcpIfaces, err := network.SetupInterfaces(&guest)
+		if err != nil {
+			return fmt.Errorf("an error occured during the the setup of the network: %v", err)
+		}
+
+		// Serve DHCP requests for those interfaces
+		// The function returns the available IP addresses that are being
+		// served over DHCP now
+		dnsServers := c.GetStringSlice(cfgGuestDNSServers)
+		ntpServers := c.GetStringSlice(cfgGuestNTPServers)
+
+		if err = network.StartDHCPServers(guest, dhcpIfaces, dnsServers, ntpServers); err != nil {
+			return fmt.Errorf("an error occured during the start of the DHCP servers: %v", err)
 		}
 
 		// execute QEMU
