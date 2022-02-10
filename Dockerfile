@@ -1,4 +1,4 @@
-FROM fedora:33 AS builder
+FROM fedora:35 AS builder
 
 # Please keep this list sorted alphabetically
 ENV PACKAGES \
@@ -137,7 +137,7 @@ RUN dnf install -y $PACKAGES \
     && make -j$(getconf _NPROCESSORS_ONLN) \
     && make install
 
-FROM fedora:33
+FROM fedora:35
 
 ENV QEMU_VERSION 5.2.0
 ENV QEMU_INSTALL_PREFIX /usr/local/qemu-"$QEMU_VERSION"
